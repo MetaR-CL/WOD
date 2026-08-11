@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0F1416">
+<title>Séance</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<style>
+:root{
+  --ground:#0F1416;
+  --ground-2:#161D20;
+  --line:#2A3438;
+  --bone:#EDE7DA;
+  --bone-dim:#8B948F;
+  --signal:#E8B23A;
+  --rest:#4FA6A0;
+  --alert:#C9563F;
+  --r:2px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--ground);color:var(--bone);
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-variant-numeric:tabular-nums;overscroll-behavior:none}
+body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);min-height:100vh}
+.wrap{max-width:680px;margin:0 auto;padding:18px 18px 90px}
+
+.eyebrow{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--bone-dim);font-weight:600}
+h1{font-size:31px;font-weight:800;letter-spacing:-.02em;line-height:1.02;margin:6px 0 2px}
+h2{font-size:15px;font-weight:700;letter-spacing:.01em}
+.sub{color:var(--bone-dim);font-size:13px;line-height:1.5}
+
+header.top{display:flex;justify-content:space-between;align-items:flex-end;
+  border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:20px}
+
+/* --- roue des patterns : élément signature --- */
+.wheel{display:block;width:104px;height:104px;flex:none}
+.seg{fill:none;stroke:var(--line);stroke-width:9;transition:stroke .35s}
+.seg.on{stroke:var(--signal)}
+.seg.done{stroke:var(--rest)}
+
+section{margin-bottom:26px}
+.label{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--bone-dim);
+  font-weight:600;margin-bottom:9px;display:block}
+
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{border:1px solid var(--line);background:transparent;color:var(--bone-dim);
+  padding:10px 14px;border-radius:var(--r);font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.chip[aria-pressed="true"]{border-color:var(--signal);color:var(--ground);background:var(--signal)}
+
+.btn{width:100%;padding:17px;border:none;border-radius:var(--r);background:var(--signal);
+  color:var(--ground);font:inherit;font-size:15px;font-weight:800;letter-spacing:.05em;
+  text-transform:uppercase;cursor:pointer}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--bone)}
+.btn.wide{margin-top:8px}
+.btn:disabled{opacity:.35}
+
+/* --- liste d'exercices --- */
+.ex{display:flex;gap:13px;padding:14px 0;border-bottom:1px solid var(--line);align-items:flex-start}
+.ex:last-child{border-bottom:none}
+.ex .pat{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--bone-dim);
+  font-weight:700;width:74px;flex:none;padding-top:3px;line-height:1.35}
+.ex .body{flex:1;min-width:0}
+.ex .nm{font-size:16px;font-weight:700;line-height:1.25}
+.ex .dose{color:var(--signal);font-size:13px;font-weight:600;margin-top:3px}
+.ex .cue{color:var(--bone-dim);font-size:12.5px;line-height:1.45;margin-top:4px}
+.lvl{font-size:10px;font-weight:800;color:var(--bone-dim);border:1px solid var(--line);
+  padding:2px 5px;border-radius:var(--r);margin-left:6px;vertical-align:2px}
+
+/* --- timer --- */
+.timer{text-align:center;padding:8px 0 4px}
+.clock{font-size:88px;font-weight:800;letter-spacing:-.045em;line-height:1;font-variant-numeric:tabular-nums}
+.clock.rest{color:var(--rest)}
+.phase{font-size:12px;letter-spacing:.24em;text-transform:uppercase;font-weight:700;color:var(--bone-dim);margin-bottom:12px}
+.now{font-size:24px;font-weight:800;line-height:1.15;margin:16px 0 4px}
+.next{color:var(--bone-dim);font-size:13px;margin-top:14px}
+.row2{display:flex;gap:9px;margin-top:20px}
+.row2 .btn{flex:1}
+
+.card{border:1px solid var(--line);padding:14px;border-radius:var(--r);background:var(--ground-2)}
+.warn{border-left:3px solid var(--alert)}
+.tip{border-left:3px solid var(--signal)}
+.card p{font-size:13px;line-height:1.5;color:var(--bone-dim)}
+.card p b{color:var(--bone)}
+
+.hist{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.hist span{color:var(--bone-dim)}
+
+.slider{width:100%;accent-color:var(--signal);margin:10px 0}
+.hide{display:none!important}
+
+nav.tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--ground-2);
+  border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:9}
+nav.tabs button{flex:1;background:none;border:none;color:var(--bone-dim);font:inherit;
+  font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:15px 4px;cursor:pointer}
+nav.tabs button.on{color:var(--signal)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <span class="eyebrow" id="eyebrow">Séance du jour</span>
+      <h1 id="title">Prêt</h1>
+      <p class="sub" id="subtitle">Tout reste sur cet appareil.</p>
+    </div>
+    <svg class="wheel" id="wheel" viewBox="0 0 100 100" aria-hidden="true"></svg>
+  </header>
+
+  <!-- ACCUEIL -->
+  <div id="v-home">
+    <section>
+      <span class="label">Durée</span>
+      <div class="chips" id="dur"></div>
+    </section>
+    <section>
+      <span class="label">Matériel disponible</span>
+      <div class="chips" id="equip"></div>
+    </section>
+    <section id="readyBox"></section>
+    <button class="btn" id="gen">Générer la séance</button>
+  </div>
+
+  <!-- SÉANCE -->
+  <div id="v-wod" class="hide">
+    <section id="wodList"></section>
+    <button class="btn" id="start">Lancer le chrono</button>
+    <button class="btn ghost wide" id="regen">Regénérer</button>
+  </div>
+
+  <!-- CHRONO -->
+  <div id="v-run" class="hide">
+    <div class="timer">
+      <div class="phase" id="phase">Effort</div>
+      <div class="clock" id="clock">00:00</div>
+      <div class="now" id="now"></div>
+      <div class="dose" id="dose" style="color:var(--signal);font-weight:600"></div>
+      <p class="cue sub" id="cue" style="margin-top:8px"></p>
+      <div class="next" id="next"></div>
+    </div>
+    <div class="row2">
+      <button class="btn ghost" id="pause">Pause</button>
+      <button class="btn" id="doneSet">Série faite</button>
+    </div>
+    <button class="btn ghost wide" id="abort">Arrêter la séance</button>
+  </div>
+
+  <!-- BILAN -->
+  <div id="v-end" class="hide">
+    <section>
+      <span class="label">Effort ressenti</span>
+      <div id="rpeVal" style="font-size:34px;font-weight:800">7</div>
+      <input class="slider" type="range" min="4" max="10" value="7" id="rpe">
+      <p class="sub" id="rpeTxt"></p>
+    </section>
+    <section>
+      <span class="label">Une douleur pendant la séance ?</span>
+      <div class="chips" id="painList"></div>
+    </section>
+    <button class="btn" id="save">Enregistrer</button>
+  </div>
+
+  <!-- NIVEAUX -->
+  <div id="v-lvl" class="hide"><section id="lvlList"></section></div>
+
+  <!-- HISTORIQUE -->
+  <div id="v-hist" class="hide">
+    <section id="histList"></section>
+    <button class="btn ghost" id="export">Exporter mes données</button>
+  </div>
+</div>
+
+<nav class="tabs">
+  <button data-v="home" class="on">Séance</button>
+  <button data-v="lvl">Niveaux</button>
+  <button data-v="hist">Historique</button>
+</nav>
+
+<script>
+/* ---------- stockage local, sans compte ---------- */
+const store={
+  get(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null}catch(e){return null}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+};
+
+/* ---------- patterns ---------- */
+const PATTERNS=[
+  {id:'hinge', short:'Charnière'},
+  {id:'squat', short:'Squat'},
+  {id:'pushV', short:'Poussée vert.'},
+  {id:'pushH', short:'Poussée horiz.'},
+  {id:'pullV', short:'Tirage vert.'},
+  {id:'pullH', short:'Tirage horiz.'},
+  {id:'core',  short:'Anti-rotation'}
+];
+
+/* ---------- bibliothèque : 4 paliers par pattern ---------- */
+const LIB={
+hinge:[
+ {n:"Soulevé de terre kettlebell",eq:['kb'],reps:"8–12",cue:"Dos neutre, la barre du KB reste sous les épaules. Pousse le sol, ne tire pas avec le bas du dos."},
+ {n:"Swing 2 mains",eq:['kb'],reps:"3 × 15",cue:"C'est une charnière, pas un squat. Le KB flotte, tu ne le lèves pas avec les bras."},
+ {n:"Swing 1 bras",eq:['kb'],reps:"3 × 10 / côté",cue:"Résiste à la rotation du buste. L'épaule libre reste basse."},
+ {n:"Half snatch",eq:['kb'],reps:"3 × 6 / côté",cue:"Trajectoire près du corps, poinçonne vers le haut. Arrête la série dès que la forme se dégrade."}
+],
+squat:[
+ {n:"Squat au poids du corps, tempo 3s",eq:['rien'],reps:"3 × 12",cue:"Descente en 3 secondes, pause en bas. Genoux dans l'axe des orteils."},
+ {n:"Goblet squat",eq:['kb'],reps:"3 × 10",cue:"Coudes à l'intérieur des genoux en bas. Buste haut, talons au sol."},
+ {n:"Fente bulgare",eq:['rien'],reps:"3 × 8 / jambe",cue:"Pied arrière sur une chaise. Le travail est sur la jambe avant, l'arrière ne fait qu'équilibrer."},
+ {n:"Fente bulgare lestée",eq:['kb'],reps:"3 × 8 / jambe",cue:"KB en rack d'un côté. Bassin de niveau, pas de bascule latérale."}
+],
+pushV:[
+ {n:"Press élastique au-dessus de la tête",eq:['elastique'],reps:"3 × 12",cue:"Côtes basses, pas de cambrure lombaire pour compenser un manque de mobilité d'épaule."},
+ {n:"Press kettlebell 1 bras",eq:['kb'],reps:"3 × 6 / côté",cue:"Serre la fesse du même côté, gaine. Le KB passe devant le visage, pas sur le côté."},
+ {n:"Push press",eq:['kb'],reps:"3 × 8 / côté",cue:"Impulsion de jambes, réception coude verrouillé. Descente contrôlée."},
+ {n:"Double press kettlebell",eq:['kb'],reps:"3 × 5",cue:"Deux KB. Exigeant pour le tronc — arrête si le bas du dos prend le relais."}
+],
+pushH:[
+ {n:"Pompe mains surélevées",eq:['rien'],reps:"3 × 12",cue:"Mains sur une table ou une chaise. Corps en planche, bassin ni haut ni bas."},
+ {n:"Pompe au sol",eq:['rien'],reps:"3 × 10–15",cue:"Descente en 2–3 secondes, poitrine près du sol. Coudes à ~45°, pas écartés à 90°."},
+ {n:"Pompe aux anneaux, pieds au sol",eq:['anneaux'],reps:"3 × 8–12",cue:"Anneaux bas. Tourne les paumes vers l'avant en haut. Apprivoise l'instabilité avant de charger."},
+ {n:"Pompe aux anneaux, pieds surélevés",eq:['anneaux'],reps:"3 × 8",cue:"C'est ici que le haut des pecs travaille. Épaules plus basses que les pieds, gainage constant."}
+],
+pullV:[
+ {n:"Tirage vertical élastique",eq:['elastique'],reps:"3 × 15",cue:"Élastique ancré en haut. Amorce par les omoplates, pas par les coudes."},
+ {n:"Traction excentrique",eq:['barre','anneaux'],reps:"4 × 4",cue:"Tu montes assisté, tu descends en 5 secondes. La meilleure marche avant la traction stricte."},
+ {n:"Traction stricte",eq:['barre','anneaux'],reps:"4 × 4–6",cue:"Amplitude complète, pas d'élan. Garde 2 reps en réserve."},
+ {n:"Traction lestée",eq:['barre','anneaux'],reps:"4 × 4",cue:"Charge légère au début. Si l'amplitude se raccourcit, tu es trop lourd."}
+],
+pullH:[
+ {n:"Row aux anneaux, incliné",eq:['anneaux'],reps:"3 × 12",cue:"Plus tu es debout, plus c'est facile. Omoplates serrées en fin de tirage."},
+ {n:"Row aux anneaux, corps horizontal",eq:['anneaux'],reps:"3 × 10",cue:"Talons au sol, corps en planche du talon à la tête. Pas de bassin qui tombe."},
+ {n:"Row aux anneaux, pieds surélevés",eq:['anneaux'],reps:"3 × 8",cue:"Pieds sur une chaise. Pause 1 seconde en haut."},
+ {n:"Row 1 bras aux anneaux",eq:['anneaux'],reps:"3 × 6 / côté",cue:"Résiste à la rotation. Très exigeant pour le tronc."}
+],
+core:[
+ {n:"Suitcase carry",eq:['kb'],reps:"4 × 30 s / côté",cue:"Un KB d'un côté, marche droit. Épaules de niveau — c'est tout l'exercice."},
+ {n:"Renegade row",eq:['kb'],reps:"3 × 8 / côté",cue:"Pieds larges. Le bassin ne tourne pas quand tu tires."},
+ {n:"Rack walk 1 bras",eq:['kb'],reps:"4 × 30 s / côté",cue:"KB en rack, côtes basses. Respire normalement pendant la marche."},
+ {n:"Turkish get-up",eq:['kb'],reps:"3 × 2 / côté",cue:"Lent, une phase à la fois, les yeux sur le KB. C'est un test de mobilité, pas un exercice de force."}
+]
+};
+const ACCESS={n:"Dips",eq:['anneaux','barre'],reps:"2 × 8",cue:"En accessoire, pas en poussée principale. Amplitude où tu ne sens rien tirer dans l'épaule."};
+const WARM={n:"Échauffement",reps:"5 min",cue:"Cercles d'épaules, cat-cow, fentes avec rotation, 20 swings légers. Ne saute pas cette étape."};
+
+const EQUIP=[{id:'kb',l:'Kettlebell'},{id:'anneaux',l:'Anneaux'},{id:'barre',l:'Barre de traction'},
+  {id:'elastique',l:'Élastiques'},{id:'rien',l:'Poids du corps'}];
+const DURS=[{v:20,l:'20 min'},{v:30,l:'30 min'},{v:45,l:'45 min'}];
+
+/* ---------- état ---------- */
+let S={equip:['kb','elastique','rien'],dur:30,levels:{},history:[]};
+PATTERNS.forEach(p=>S.levels[p.id]=1);   // index 0–3, départ palier 2
+let wod=null,run=null;
+
+/* ---------- roue signature ---------- */
+function wheel(states){
+  const el=document.getElementById('wheel'),R=41,C=2*Math.PI*R,seg=C/7-4;
+  el.innerHTML=PATTERNS.map((p,i)=>{
+    const cl=states?(states[p.id]||''):'';
+    return `<circle class="seg ${cl}" cx="50" cy="50" r="${R}"
+      stroke-dasharray="${seg} ${C-seg}" stroke-dashoffset="${-i*C/7}"
+      transform="rotate(-90 50 50)" stroke-linecap="butt"/>`;
+  }).join('');
+}
+
+/* ---------- rendu accueil ---------- */
+function paintHome(){
+  document.getElementById('dur').innerHTML=DURS.map(d=>
+    `<button class="chip" data-d="${d.v}" aria-pressed="${S.dur===d.v}">${d.l}</button>`).join('');
+  document.getElementById('equip').innerHTML=EQUIP.map(e=>
+    `<button class="chip" data-e="${e.id}" aria-pressed="${S.equip.includes(e.id)}">${e.l}</button>`).join('');
+  const ready=readyToProgress();
+  document.getElementById('readyBox').innerHTML=ready.length
+    ? `<div class="card tip"><p><b>Prêt à monter d'un cran :</b> ${ready.join(', ')}. Deux séances propres à RPE ≤ 6 sans douleur. Passe au palier suivant dans l'onglet Niveaux.</p></div>`
+    : '';
+  wheel(null);
+  document.getElementById('title').textContent='Prêt';
+  document.getElementById('subtitle').textContent='Tout reste sur cet appareil.';
+}
+
+function readyToProgress(){
+  const h=S.history.slice(-2);
+  if(h.length<2)return[];
+  const ok=h.every(s=>s.rpe<=6&&(!s.pain||!s.pain.length));
+  if(!ok)return[];
+  const common=h[0].pats.filter(p=>h[1].pats.includes(p));
+  return common.map(id=>PATTERNS.find(p=>p.id===id).short);
+}
+
+/* ---------- génération ---------- */
+function pick(patId){
+  const lvl=S.levels[patId],list=LIB[patId];
+  for(let i=lvl;i>=0;i--){ if(list[i].eq.some(e=>S.equip.includes(e))) return {...list[i],lvl:i+1,pat:patId}; }
+  for(let i=lvl+1;i<list.length;i++){ if(list[i].eq.some(e=>S.equip.includes(e))) return {...list[i],lvl:i+1,pat:patId}; }
+  return null;
+}
+function generate(){
+  let ex=PATTERNS.map(p=>pick(p.id)).filter(Boolean);
+  if(S.dur===20){ ex=ex.slice(0,5).concat(ex.slice(5)); ex.forEach(e=>e.reps=e.reps.replace(/^[34] ×/,'2 ×')); }
+  if(S.dur===45&&ACCESS.eq.some(e=>S.equip.includes(e))) ex.push({...ACCESS,lvl:null,pat:null});
+  wod={ex,rest:S.dur===20?40:60};
+  paintWod();
+}
+function paintWod(){
+  const st={}; wod.ex.forEach(e=>{if(e.pat)st[e.pat]='on'}); wheel(st);
+  document.getElementById('eyebrow').textContent='Séance du jour';
+  document.getElementById('title').textContent=S.dur+' minutes';
+  document.getElementById('subtitle').textContent='Garde 2 répétitions en réserve à chaque série.';
+  document.getElementById('wodList').innerHTML=
+    `<div class="ex"><div class="pat">Avant</div><div class="body">
+      <div class="nm">${WARM.n}</div><div class="dose">${WARM.reps}</div>
+      <div class="cue">${WARM.cue}</div></div></div>`+
+    wod.ex.map(e=>`<div class="ex"><div class="pat">${e.pat?PATTERNS.find(p=>p.id===e.pat).short:'Accessoire'}</div>
+      <div class="body"><div class="nm">${e.n}${e.lvl?`<span class="lvl">P${e.lvl}</span>`:''}</div>
+      <div class="dose">${e.reps} · repos ${wod.rest}s</div>
+      <div class="cue">${e.cue}</div></div></div>`).join('');
+}
+
+/* ---------- chrono ---------- */
+let lock=null;
+async function keepAwake(on){
+  try{ if(on&&'wakeLock'in navigator){lock=await navigator.wakeLock.request('screen')}
+       else if(lock){lock.release();lock=null} }catch(e){}
+}
+function sets(reps){const m=reps.match(/^(\d+) ×/);return m?+m[1]:3}
+function startRun(){
+  run={i:0,set:1,rest:false,t:0,paused:false,done:{}};
+  show('run');keepAwake(true);
+  clearInterval(run.iv);run.iv=setInterval(tick,1000);paintRun();
+}
+function tick(){
+  if(!run||run.paused)return;
+  if(run.rest){ run.t--; if(run.t<=0){run.rest=false;run.t=0;} }
+  else run.t++;
+  paintClock();
+}
+function paintClock(){
+  const t=Math.max(0,run.t),m=String(Math.floor(t/60)).padStart(2,'0'),s=String(t%60).padStart(2,'0');
+  const c=document.getElementById('clock');
+  c.textContent=m+':'+s; c.classList.toggle('rest',run.rest);
+  document.getElementById('phase').textContent=run.rest?'Repos':'Effort · série '+run.set;
+}
+function paintRun(){
+  const e=wod.ex[run.i];
+  document.getElementById('now').textContent=e.n;
+  document.getElementById('dose').textContent=e.reps;
+  document.getElementById('cue').textContent=e.cue;
+  const nx=wod.ex[run.i+1];
+  document.getElementById('next').textContent=nx?'Ensuite · '+nx.n:'Dernier exercice';
+  const st={};wod.ex.forEach((x,i)=>{if(x.pat)st[x.pat]=i<run.i?'done':'on'});wheel(st);
+  paintClock();
+}
+function nextSet(){
+  const e=wod.ex[run.i],total=sets(e.reps);
+  if(run.set<total){ run.set++; run.rest=true; run.t=wod.rest; }
+  else{
+    if(e.pat)run.done[e.pat]=1;
+    if(run.i<wod.ex.length-1){ run.i++; run.set=1; run.rest=true; run.t=wod.rest; paintRun(); }
+    else return endRun();
+  }
+  paintRun();
+}
+function endRun(){
+  clearInterval(run.iv);keepAwake(false);
+  document.getElementById('painList').innerHTML=
+    '<button class="chip" data-p="aucune" aria-pressed="true">Aucune</button>'+
+    wod.ex.map((e,i)=>`<button class="chip" data-p="${i}" aria-pressed="false">${e.n}</button>`).join('');
+  document.getElementById('title').textContent='Bilan';
+  document.getElementById('eyebrow').textContent='Séance terminée';
+  document.getElementById('subtitle').textContent='Deux questions, et c’est fini.';
+  show('end');
+}
+const RPETXT={4:"Très facile — tu peux monter le volume.",5:"Facile.",6:"Confortable, 4 reps en réserve.",
+7:"Bon niveau de travail, 2–3 reps en réserve.",8:"Difficile, 1–2 reps en réserve. C’est la limite haute.",
+9:"Trop dur pour du travail régulier — réduis.",10:"À l’échec. À éviter sur ces mouvements."};
+
+/* ---------- navigation ---------- */
+const VIEWS=['home','wod','run','end','lvl','hist'];
+function show(v){
+  VIEWS.forEach(x=>document.getElementById('v-'+x).classList.toggle('hide',x!==v));
+  document.querySelectorAll('nav.tabs button').forEach(b=>
+    b.classList.toggle('on',b.dataset.v===v||(v==='wod'&&b.dataset.v==='home')));
+  if(v==='lvl')paintLvl(); if(v==='hist')paintHist();
+}
+function paintLvl(){
+  document.getElementById('title').textContent='Niveaux';
+  document.getElementById('eyebrow').textContent='Progression';
+  document.getElementById('subtitle').textContent='Tu montes quand tu tiens le haut de la fourchette, deux séances de suite, sans douleur.';
+  wheel(null);
+  document.getElementById('lvlList').innerHTML=PATTERNS.map(p=>{
+    const cur=S.levels[p.id];
+    return `<div class="ex"><div class="pat">${p.short}</div><div class="body">
+      <div class="nm">${LIB[p.id][cur].n}</div>
+      <div class="chips" style="margin-top:8px">
+        <button class="chip" data-lv="${p.id}:-1" ${cur===0?'disabled':''}>−</button>
+        <button class="chip" aria-pressed="true">Palier ${cur+1} / 4</button>
+        <button class="chip" data-lv="${p.id}:1" ${cur===3?'disabled':''}>+</button>
+      </div></div></div>`;
+  }).join('');
+}
+function paintHist(){
+  document.getElementById('title').textContent='Historique';
+  document.getElementById('eyebrow').textContent=S.history.length+' séances';
+  document.getElementById('subtitle').textContent='Rien n’est envoyé nulle part.';
+  wheel(null);
+  const l=document.getElementById('histList');
+  l.innerHTML=S.history.length?S.history.slice().reverse().map(h=>
+    `<div class="hist"><span>${new Date(h.d).toLocaleDateString('fr-CH',{day:'2-digit',month:'short'})}</span>
+     <span style="color:var(--bone)">${h.dur} min · RPE ${h.rpe}</span>
+     <span style="color:${h.pain&&h.pain.length?'var(--alert)':'var(--bone-dim)'}">${h.pain&&h.pain.length?'douleur':'—'}</span></div>`).join('')
+   :'<div class="card"><p>Aucune séance enregistrée. Lance-en une, elle apparaîtra ici.</p></div>';
+}
+
+/* ---------- événements ---------- */
+document.getElementById('dur').onclick=e=>{const b=e.target.closest('[data-d]');if(!b)return;
+  S.dur=+b.dataset.d;save();paintHome()};
+document.getElementById('equip').onclick=e=>{const b=e.target.closest('[data-e]');if(!b)return;
+  const id=b.dataset.e;S.equip.includes(id)?S.equip=S.equip.filter(x=>x!==id):S.equip.push(id);
+  if(!S.equip.length)S.equip=['rien'];save();paintHome()};
+document.getElementById('gen').onclick=()=>{generate();show('wod')};
+document.getElementById('regen').onclick=generate;
+document.getElementById('start').onclick=startRun;
+document.getElementById('doneSet').onclick=nextSet;
+document.getElementById('pause').onclick=e=>{run.paused=!run.paused;
+  e.target.textContent=run.paused?'Reprendre':'Pause'};
+document.getElementById('abort').onclick=()=>{clearInterval(run.iv);keepAwake(false);show('home');paintHome()};
+document.getElementById('rpe').oninput=e=>{document.getElementById('rpeVal').textContent=e.target.value;
+  document.getElementById('rpeTxt').textContent=RPETXT[e.target.value]};
+document.getElementById('painList').onclick=e=>{const b=e.target.closest('[data-p]');if(!b)return;
+  const none=b.dataset.p==='aucune';
+  if(none)document.querySelectorAll('#painList .chip').forEach(c=>
+    c.setAttribute('aria-pressed',c.dataset.p==='aucune'));
+  else{b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')!=='true');
+    document.querySelector('[data-p="aucune"]').setAttribute('aria-pressed','false')}};
+document.getElementById('save').onclick=()=>{
+  const pain=[...document.querySelectorAll('#painList .chip[aria-pressed="true"]')]
+    .filter(c=>c.dataset.p!=='aucune').map(c=>wod.ex[+c.dataset.p].n);
+  S.history.push({d:Date.now(),dur:S.dur,rpe:+document.getElementById('rpe').value,
+    pain,pats:wod.ex.filter(e=>e.pat).map(e=>e.pat)});
+  pain.forEach(nm=>{const e=wod.ex.find(x=>x.n===nm);
+    if(e&&e.pat&&S.levels[e.pat]>0)S.levels[e.pat]--;});
+  save();show('home');paintHome();
+};
+document.getElementById('lvlList').onclick=e=>{const b=e.target.closest('[data-lv]');if(!b)return;
+  const[p,d]=b.dataset.lv.split(':');S.levels[p]=Math.max(0,Math.min(3,S.levels[p]+ +d));save();paintLvl()};
+document.getElementById('export').onclick=()=>{
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));
+  a.download='seances.json';a.click()};
+document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>{
+  const v=b.dataset.v;if(v==='home'){paintHome();show('home')}else show(v)});
+
+function save(){store.set('wodapp',S)}
+(()=>{const s=store.get('wodapp');if(s)S={...S,...s};paintHome()})();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js'));
+}
+</script>
+</body>
+</html>
