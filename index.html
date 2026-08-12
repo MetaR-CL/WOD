@@ -121,6 +121,10 @@ nav.tabs button.on{color:var(--signal)}
   <!-- ACCUEIL -->
   <div id="v-home">
     <section>
+      <span class="label">Type de séance</span>
+      <div class="chips" id="mode"></div>
+    </section>
+    <section>
       <span class="label">Durée</span>
       <div class="chips" id="dur"></div>
     </section>
@@ -333,13 +337,32 @@ core:[
 const ACCESS={n:"Dips",eq:['anneaux','barre'],reps:"2 × 8",cue:"En accessoire, pas en poussée principale. Amplitude où tu ne sens rien tirer dans l'épaule."};
 const WARM={n:"Échauffement",reps:"5 min",cue:"Cercles d'épaules, cat-cow, fentes avec rotation, 20 swings légers. Ne saute pas cette étape."};
 
+/* ---------- circuit VO2max : poids du corps + kettlebell uniquement ---------- */
+const VO2_POOL=[
+ {n:"Swing kettlebell 2 mains",cue:"Explosif, la hanche claque. Le KB ne monte jamais plus haut que les yeux si tu perds le contrôle."},
+ {n:"Burpees",cue:"Poitrine au sol, saut vertical en sortie. Vise un rythme soutenable sur toute la durée, pas un sprint sur les 10 premières secondes."},
+ {n:"Squat jump",cue:"Réception souple, genoux dans l'axe des orteils. Enchaîne sans t'arrêter en bas."},
+ {n:"Mountain climbers",cue:"Bassin bas et stable, les genoux viennent sous la poitrine. Rythme rapide, gainage constant."},
+ {n:"Clean & press kettlebell, alterné",cue:"Un bras à la fois : clean puis press. Change de bras à la mi-temps de la station."},
+ {n:"Fentes sautées",cue:"Alterne les jambes en l'air. Réception souple, le genou avant ne dépasse pas les orteils."},
+ {n:"Snatch kettlebell, alterné",cue:"Change de bras environ toutes les 30 secondes. Technique avant vitesse — ralentis si la forme se dégrade."},
+ {n:"Jumping jacks",cue:"Amplitude complète bras et jambes. Bloc plus léger du circuit : garde quand même le rythme."},
+ {n:"Thruster kettlebell",cue:"Le squat propulse le KB vers le haut en un seul mouvement continu. Très cardio."},
+ {n:"Montées de genoux",cue:"Rythme rapide, genoux à hauteur de hanche. Les bras pompent comme à la course."},
+ {n:"Renegade row",cue:"Pieds larges, un KB dans chaque main. Le bassin ne tourne pas quand tu tires."},
+ {n:"Plank jack",cue:"En planche, les pieds sautent écartés-resserrés. Le bassin ne bouge pas pendant le saut."}
+];
+
 const ALL_EQUIP=['kb','anneaux','barre','elastique','rien'];
 const DURS=[{v:20,l:'20 min'},{v:30,l:'30 min'},{v:45,l:'45 min'}];
+const MODES=[{id:'force',l:'Force'},{id:'vo2',l:'VO2max'}];
+const VO2_WORK=40, VO2_REST=20;
+const VO2_ROUNDS={20:3,30:5,45:7};
 
 /* ---------- état ---------- */
 // Tout le matériel est toujours considéré comme disponible : plus de sélection à faire,
 // et ça garantit qu'aucun pattern (charnière, tirage...) ne soit exclu faute d'équipement.
-let S={equip:ALL_EQUIP,dur:30,levels:{},history:[]};
+let S={equip:ALL_EQUIP,dur:30,mode:'force',levels:{},history:[]};
 PATTERNS.forEach(p=>S.levels[p.id]=1);   // index 0–3, départ palier 2
 let wod=null,run=null;
 
@@ -356,12 +379,14 @@ function wheel(states){
 
 /* ---------- rendu accueil ---------- */
 function paintHome(){
+  document.getElementById('mode').innerHTML=MODES.map(m=>
+    `<button class="chip" data-m="${m.id}" aria-pressed="${S.mode===m.id}">${m.l}</button>`).join('');
   document.getElementById('dur').innerHTML=DURS.map(d=>
     `<button class="chip" data-d="${d.v}" aria-pressed="${S.dur===d.v}">${d.l}</button>`).join('');
-  const ready=readyToProgress();
+  const ready=S.mode==='force'?readyToProgress():[];
   document.getElementById('readyBox').innerHTML=ready.length
     ? `<div class="card tip"><p><b>Prêt à monter d'un cran :</b> ${ready.join(', ')}. Deux séances propres à RPE ≤ 6 sans douleur. Passe au palier suivant dans l'onglet Niveaux.</p></div>`
-    : '';
+    : (S.mode==='vo2' ? `<div class="card warn"><p><b>VO2max :</b> circuit intense, poids du corps + kettlebell. Adapte l'intensité si besoin — la forme prime sur la vitesse.</p></div>` : '');
   wheel(null);
   document.getElementById('title').textContent='Prêt';
   document.getElementById('subtitle').textContent='Tout reste sur cet appareil.';
@@ -387,14 +412,31 @@ function pick(patId,exclude){
   };
   return search(true)||search(false);
 }
-function generate(){
+function shuffle(arr){
+  const a=arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+function generate(){ S.mode==='vo2' ? generateVo2() : generateForce(); }
+function generateForce(){
   let ex=PATTERNS.map(p=>pick(p.id)).filter(Boolean);
   if(S.dur===20){ ex=ex.slice(0,5).concat(ex.slice(5)); ex.forEach(e=>e.reps=e.reps.replace(/^[34] ×/,'2 ×')); }
   if(S.dur===45&&ACCESS.eq.some(e=>S.equip.includes(e))) ex.push({...ACCESS,lvl:null,pat:null});
-  wod={ex,rest:S.dur===20?40:60};
+  wod={mode:'force',ex,rest:S.dur===20?40:60};
   paintWod();
 }
-function paintWod(){
+function generateVo2(){
+  const stations=shuffle(VO2_POOL).slice(0,5).map(v=>({...v}));
+  wod={mode:'vo2',ex:stations,circuit:{stations,work:VO2_WORK,rest:VO2_REST,rounds:VO2_ROUNDS[S.dur]||4}};
+  paintWod();
+}
+function pickVo2(exclude){
+  const inCircuit=wod.circuit.stations.map(s=>s.n);
+  const options=VO2_POOL.filter(v=>v.n!==exclude&&!inCircuit.includes(v.n));
+  return options.length?{...options[Math.floor(Math.random()*options.length)]}:null;
+}
+function paintWod(){ wod.mode==='vo2' ? paintWodVo2() : paintWodForce(); }
+function paintWodForce(){
   const st={}; wod.ex.forEach(e=>{if(e.pat)st[e.pat]='on'}); wheel(st);
   document.getElementById('eyebrow').textContent='Séance du jour';
   document.getElementById('title').textContent=S.dur+' minutes';
@@ -409,6 +451,22 @@ function paintWod(){
       <div class="cue">${e.cue}</div></div>
       ${e.pat?`<button class="swap" data-swap="${i}" title="Changer d'exercice" aria-label="Changer d'exercice">⟳</button>`:''}</div>`).join('');
 }
+function paintWodVo2(){
+  const allOn={}; PATTERNS.forEach(p=>allOn[p.id]='on'); wheel(allOn);
+  const c=wod.circuit;
+  document.getElementById('eyebrow').textContent='Circuit du jour';
+  document.getElementById('title').textContent=c.rounds+' tours';
+  document.getElementById('subtitle').textContent=`${c.work}s effort / ${c.rest}s repos par station. Le chrono mène la danse, tu suis.`;
+  document.getElementById('wodList').innerHTML=
+    `<div class="ex"><div class="pat">Avant</div><div class="body">
+      <div class="nm">${WARM.n}</div><div class="dose">${WARM.reps}</div>
+      <div class="cue">${WARM.cue}</div></div></div>`+
+    c.stations.map((e,i)=>`<div class="ex"><div class="pat">Station ${i+1}</div>
+      <div class="body"><div class="nm">${e.n}</div>
+      <div class="dose">${c.work}s effort · ${c.rest}s repos</div>
+      <div class="cue">${e.cue}</div></div>
+      <button class="swap" data-swap="${i}" title="Changer d'exercice" aria-label="Changer d'exercice">⟳</button></div>`).join('');
+}
 
 /* ---------- chrono ---------- */
 let lock=null;
@@ -418,12 +476,28 @@ async function keepAwake(on){
 }
 function sets(reps){const m=reps.match(/^(\d+) ×/);return m?+m[1]:3}
 function startRun(){
-  run={i:0,set:1,rest:false,t:0,paused:false,done:{}};
+  const btn=document.getElementById('doneSet');
+  document.getElementById('pause').textContent='Pause';
+  if(wod.mode==='vo2'){
+    run={mode:'vo2',round:1,station:0,phase:'work',t:wod.circuit.work,paused:false};
+    btn.textContent='Passer';
+    show('run');keepAwake(true);
+    clearInterval(run.iv);run.iv=setInterval(tick,1000);paintVo2Run();
+    return;
+  }
+  run={mode:'force',i:0,set:1,rest:false,t:0,paused:false,done:{}};
+  btn.textContent='Série faite';
   show('run');keepAwake(true);
   clearInterval(run.iv);run.iv=setInterval(tick,1000);paintRun();
 }
 function tick(){
   if(!run||run.paused)return;
+  if(run.mode==='vo2'){
+    run.t--;
+    if(run.t<=0) vo2Advance();
+    paintVo2Run();
+    return;
+  }
   if(run.rest){ run.t--; if(run.t<=0){run.rest=false;run.t=0;} }
   else run.t++;
   paintClock();
@@ -453,6 +527,33 @@ function nextSet(){
     else return endRun();
   }
   paintRun();
+}
+
+/* ---------- circuit VO2max ---------- */
+function vo2Advance(){
+  const stations=wod.circuit.stations;
+  if(run.phase==='work'){ run.phase='rest'; run.t=wod.circuit.rest; return; }
+  run.station++;
+  if(run.station>=stations.length){
+    run.station=0; run.round++;
+    if(run.round>wod.circuit.rounds){ endRun(); return; }
+  }
+  run.phase='work'; run.t=wod.circuit.work;
+}
+function paintVo2Run(){
+  const stations=wod.circuit.stations,st=stations[run.station];
+  const t=Math.max(0,run.t),m=String(Math.floor(t/60)).padStart(2,'0'),s=String(t%60).padStart(2,'0');
+  const c=document.getElementById('clock');
+  c.textContent=m+':'+s; c.classList.toggle('rest',run.phase==='rest');
+  document.getElementById('phase').textContent=(run.phase==='work'?'Effort':'Repos')+' · tour '+run.round+'/'+wod.circuit.rounds;
+  document.getElementById('now').textContent=st.n;
+  document.getElementById('dose').textContent=`Station ${run.station+1}/${stations.length}`;
+  document.getElementById('cue').textContent=st.cue;
+  const isLast=run.station===stations.length-1&&run.round===wod.circuit.rounds;
+  const nextSt=stations[(run.station+1)%stations.length];
+  document.getElementById('next').textContent=run.phase==='work'
+    ? 'Ensuite · repos'
+    : (isLast?'Dernière ligne droite après ce repos':'Ensuite · '+nextSt.n);
 }
 function endRun(){
   clearInterval(run.iv);keepAwake(false);
@@ -500,22 +601,31 @@ function paintHist(){
   wheel(null);
   const l=document.getElementById('histList');
   l.innerHTML=S.history.length?S.history.slice().reverse().map(h=>
-    `<div class="hist"><span>${new Date(h.d).toLocaleDateString('fr-CH',{day:'2-digit',month:'short'})}</span>
+    `<div class="hist"><span>${new Date(h.d).toLocaleDateString('fr-CH',{day:'2-digit',month:'short'})}
+       <span class="lvl">${h.mode==='vo2'?'VO2max':'Force'}</span></span>
      <span style="color:var(--bone)">${h.dur} min · RPE ${h.rpe}</span>
      <span style="color:${h.pain&&h.pain.length?'var(--alert)':'var(--bone-dim)'}">${h.pain&&h.pain.length?'douleur':'—'}</span></div>`).join('')
    :'<div class="card"><p>Aucune séance enregistrée. Lance-en une, elle apparaîtra ici.</p></div>';
 }
 
 /* ---------- événements ---------- */
+document.getElementById('mode').onclick=e=>{const b=e.target.closest('[data-m]');if(!b)return;
+  S.mode=b.dataset.m;save();paintHome()};
 document.getElementById('dur').onclick=e=>{const b=e.target.closest('[data-d]');if(!b)return;
   S.dur=+b.dataset.d;save();paintHome()};
 document.getElementById('gen').onclick=()=>{generate();show('wod')};
 document.getElementById('regen').onclick=generate;
 document.getElementById('wodList').onclick=e=>{const b=e.target.closest('[data-swap]');if(!b)return;
-  const i=+b.dataset.swap,cur=wod.ex[i],next=pick(cur.pat,cur.n);
+  const i=+b.dataset.swap;
+  if(wod.mode==='vo2'){ const next=pickVo2(wod.circuit.stations[i].n);
+    if(next){wod.circuit.stations[i]=next;paintWod();} return; }
+  const cur=wod.ex[i],next=pick(cur.pat,cur.n);
   if(next){wod.ex[i]=next;paintWod();}};
 document.getElementById('start').onclick=startRun;
-document.getElementById('doneSet').onclick=nextSet;
+document.getElementById('doneSet').onclick=()=>{
+  if(run.mode==='vo2'){ vo2Advance(); paintVo2Run(); return; }
+  nextSet();
+};
 document.getElementById('pause').onclick=e=>{run.paused=!run.paused;
   e.target.textContent=run.paused?'Reprendre':'Pause'};
 document.getElementById('abort').onclick=()=>{clearInterval(run.iv);keepAwake(false);show('home');paintHome()};
@@ -530,7 +640,7 @@ document.getElementById('painList').onclick=e=>{const b=e.target.closest('[data-
 document.getElementById('save').onclick=()=>{
   const pain=[...document.querySelectorAll('#painList .chip[aria-pressed="true"]')]
     .filter(c=>c.dataset.p!=='aucune').map(c=>wod.ex[+c.dataset.p].n);
-  S.history.push({d:Date.now(),dur:S.dur,rpe:+document.getElementById('rpe').value,
+  S.history.push({d:Date.now(),dur:S.dur,mode:wod.mode,rpe:+document.getElementById('rpe').value,
     pain,pats:wod.ex.filter(e=>e.pat).map(e=>e.pat)});
   pain.forEach(nm=>{const e=wod.ex.find(x=>x.n===nm);
     if(e&&e.pat&&S.levels[e.pat]>0)S.levels[e.pat]--;});

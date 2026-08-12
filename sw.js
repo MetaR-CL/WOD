@@ -1,4 +1,4 @@
-const CACHE_NAME = 'seance-v3';
+const CACHE_NAME = 'seance-v4';
 const CORE_ASSETS = [
   './',
   './index.html',
