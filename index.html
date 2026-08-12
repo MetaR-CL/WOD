@@ -71,6 +71,10 @@ section{margin-bottom:26px}
 .ex .cue{color:var(--bone-dim);font-size:12.5px;line-height:1.45;margin-top:4px}
 .lvl{font-size:10px;font-weight:800;color:var(--bone-dim);border:1px solid var(--line);
   padding:2px 5px;border-radius:var(--r);margin-left:6px;vertical-align:2px}
+.ex .swap{flex:none;align-self:flex-start;background:transparent;border:1px solid var(--line);
+  color:var(--bone-dim);font-size:15px;line-height:1;width:30px;height:30px;border-radius:var(--r);
+  cursor:pointer;padding:0}
+.ex .swap:active{border-color:var(--signal);color:var(--signal)}
 
 /* --- timer --- */
 .timer{text-align:center;padding:8px 0 4px}
@@ -201,49 +205,133 @@ const PATTERNS=[
   {id:'core',  short:'Anti-rotation'}
 ];
 
-/* ---------- bibliothèque : 4 paliers par pattern ---------- */
+/* ---------- bibliothèque : 4 paliers par pattern, plusieurs variantes par palier ---------- */
 const LIB={
 hinge:[
- {n:"Soulevé de terre kettlebell",eq:['kb'],reps:"8–12",cue:"Dos neutre, la barre du KB reste sous les épaules. Pousse le sol, ne tire pas avec le bas du dos."},
- {n:"Swing 2 mains",eq:['kb'],reps:"3 × 15",cue:"C'est une charnière, pas un squat. Le KB flotte, tu ne le lèves pas avec les bras."},
- {n:"Swing 1 bras",eq:['kb'],reps:"3 × 10 / côté",cue:"Résiste à la rotation du buste. L'épaule libre reste basse."},
- {n:"Half snatch",eq:['kb'],reps:"3 × 6 / côté",cue:"Trajectoire près du corps, poinçonne vers le haut. Arrête la série dès que la forme se dégrade."}
+ [
+  {n:"Soulevé de terre kettlebell",eq:['kb'],reps:"8–12",cue:"Dos neutre, la barre du KB reste sous les épaules. Pousse le sol, ne tire pas avec le bas du dos."},
+  {n:"Soulevé de terre roumain 1 jambe, poids du corps",eq:['rien'],reps:"3 × 10 / jambe",cue:"Bascule buste et jambe arrière ensemble comme une balance. Touche le sol du bout des doigts si la souplesse le permet."}
+ ],
+ [
+  {n:"Swing 2 mains",eq:['kb'],reps:"3 × 15",cue:"C'est une charnière, pas un squat. Le KB flotte, tu ne le lèves pas avec les bras."},
+  {n:"Soulevé de terre roumain 1 jambe (kettlebell)",eq:['kb'],reps:"3 × 8 / jambe",cue:"Genou d'appui légèrement fléchi, KB près du tibia. La hanche du côté libre reste haute, pas de rotation du bassin."}
+ ],
+ [
+  {n:"Swing 1 bras",eq:['kb'],reps:"3 × 10 / côté",cue:"Résiste à la rotation du buste. L'épaule libre reste basse."},
+  {n:"Soulevé de terre kettlebell 1 bras",eq:['kb'],reps:"3 × 8 / côté",cue:"Le KB tire vers le bas d'un seul côté — résiste à la rotation du buste. Dos neutre du début à la fin."}
+ ],
+ [
+  {n:"Half snatch",eq:['kb'],reps:"3 × 6 / côté",cue:"Trajectoire près du corps, poinçonne vers le haut. Arrête la série dès que la forme se dégrade."},
+  {n:"Snatch complet",eq:['kb'],reps:"3 × 5 / côté",cue:"Le KB passe au-dessus de la tête en une seule impulsion de hanche. Verrouille le coude en haut, absorbe la réception."}
+ ]
 ],
 squat:[
- {n:"Squat au poids du corps, tempo 3s",eq:['rien'],reps:"3 × 12",cue:"Descente en 3 secondes, pause en bas. Genoux dans l'axe des orteils."},
- {n:"Goblet squat",eq:['kb'],reps:"3 × 10",cue:"Coudes à l'intérieur des genoux en bas. Buste haut, talons au sol."},
- {n:"Fente bulgare",eq:['rien'],reps:"3 × 8 / jambe",cue:"Pied arrière sur une chaise. Le travail est sur la jambe avant, l'arrière ne fait qu'équilibrer."},
- {n:"Fente bulgare lestée",eq:['kb'],reps:"3 × 8 / jambe",cue:"KB en rack d'un côté. Bassin de niveau, pas de bascule latérale."}
+ [
+  {n:"Squat au poids du corps, tempo 3s",eq:['rien'],reps:"3 × 12",cue:"Descente en 3 secondes, pause en bas. Genoux dans l'axe des orteils."},
+  {n:"Split squat, poids du corps",eq:['rien'],reps:"3 × 10 / jambe",cue:"Pieds au sol, l'un devant l'autre comme figé à mi-fente. Descends droit, le genou arrière frôle le sol."}
+ ],
+ [
+  {n:"Goblet squat",eq:['kb'],reps:"3 × 10",cue:"Coudes à l'intérieur des genoux en bas. Buste haut, talons au sol."},
+  {n:"Squat sauté, poids du corps",eq:['rien'],reps:"3 × 8",cue:"Réception souple, genoux fléchis. Utile pour la course : travaille l'élasticité, pas la charge."}
+ ],
+ [
+  {n:"Fente bulgare",eq:['rien'],reps:"3 × 8 / jambe",cue:"Pied arrière sur une chaise. Le travail est sur la jambe avant, l'arrière ne fait qu'équilibrer."},
+  {n:"Split squat lesté (kettlebell)",eq:['kb'],reps:"3 × 8 / jambe",cue:"Un KB en goblet ou en suitcase d'un côté. Buste vertical, même trajectoire que la version au poids du corps."}
+ ],
+ [
+  {n:"Fente bulgare lestée",eq:['kb'],reps:"3 × 8 / jambe",cue:"KB en rack d'un côté. Bassin de niveau, pas de bascule latérale."},
+  {n:"Pistol squat assisté",eq:['rien'],reps:"3 × 5 / jambe",cue:"Une main sur un support léger pour l'équilibre. Descends lentement sur une jambe, l'autre tendue devant."}
+ ]
 ],
 pushV:[
- {n:"Press élastique au-dessus de la tête",eq:['elastique'],reps:"3 × 12",cue:"Côtes basses, pas de cambrure lombaire pour compenser un manque de mobilité d'épaule."},
- {n:"Press kettlebell 1 bras",eq:['kb'],reps:"3 × 6 / côté",cue:"Serre la fesse du même côté, gaine. Le KB passe devant le visage, pas sur le côté."},
- {n:"Push press",eq:['kb'],reps:"3 × 8 / côté",cue:"Impulsion de jambes, réception coude verrouillé. Descente contrôlée."},
- {n:"Double press kettlebell",eq:['kb'],reps:"3 × 5",cue:"Deux KB. Exigeant pour le tronc — arrête si le bas du dos prend le relais."}
+ [
+  {n:"Press élastique au-dessus de la tête",eq:['elastique'],reps:"3 × 12",cue:"Côtes basses, pas de cambrure lombaire pour compenser un manque de mobilité d'épaule."},
+  {n:"Pompe piquée",eq:['rien'],reps:"3 × 8",cue:"Fesses hautes, corps en V inversé. Le sommet du crâne se rapproche du sol entre les mains."}
+ ],
+ [
+  {n:"Press kettlebell 1 bras",eq:['kb'],reps:"3 × 6 / côté",cue:"Serre la fesse du même côté, gaine. Le KB passe devant le visage, pas sur le côté."},
+  {n:"Pompe piquée, pieds surélevés",eq:['rien'],reps:"3 × 8",cue:"Pieds sur une chaise pour incliner davantage le travail vers l'épaule. Contrôle la descente."}
+ ],
+ [
+  {n:"Push press",eq:['kb'],reps:"3 × 8 / côté",cue:"Impulsion de jambes, réception coude verrouillé. Descente contrôlée."},
+  {n:"Équilibre en poirier contre un mur",eq:['rien'],reps:"3 × 20–30 s",cue:"Dos face au mur, place les mains puis monte les pieds. Gaine fort, respire normalement."}
+ ],
+ [
+  {n:"Double press kettlebell",eq:['kb'],reps:"3 × 5",cue:"Deux KB. Exigeant pour le tronc — arrête si le bas du dos prend le relais."},
+  {n:"Poirier, descente négative contre un mur",eq:['rien'],reps:"3 × 4–5",cue:"Depuis l'équilibre contre le mur, descends lentement en 4-5 secondes. Remonte comme tu peux, garde le contrôle."}
+ ]
 ],
 pushH:[
- {n:"Pompe mains surélevées",eq:['rien'],reps:"3 × 12",cue:"Mains sur une table ou une chaise. Corps en planche, bassin ni haut ni bas."},
- {n:"Pompe au sol",eq:['rien'],reps:"3 × 10–15",cue:"Descente en 2–3 secondes, poitrine près du sol. Coudes à ~45°, pas écartés à 90°."},
- {n:"Pompe aux anneaux, pieds au sol",eq:['anneaux'],reps:"3 × 8–12",cue:"Anneaux bas. Tourne les paumes vers l'avant en haut. Apprivoise l'instabilité avant de charger."},
- {n:"Pompe aux anneaux, pieds surélevés",eq:['anneaux'],reps:"3 × 8",cue:"C'est ici que le haut des pecs travaille. Épaules plus basses que les pieds, gainage constant."}
+ [
+  {n:"Pompe mains surélevées",eq:['rien'],reps:"3 × 12",cue:"Mains sur une table ou une chaise. Corps en planche, bassin ni haut ni bas."},
+  {n:"Développé kettlebell au sol",eq:['kb'],reps:"3 × 10",cue:"Allongé au sol, coudes à 45°. Bon départ si les pompes sont encore inconfortables aux poignets."}
+ ],
+ [
+  {n:"Pompe au sol",eq:['rien'],reps:"3 × 10–15",cue:"Descente en 2–3 secondes, poitrine près du sol. Coudes à ~45°, pas écartés à 90°."},
+  {n:"Pompe déclinée, pieds surélevés",eq:['rien'],reps:"3 × 10",cue:"Pieds sur une chaise, mains au sol. Plus les pieds sont hauts, plus le haut des pecs et les épaules travaillent."}
+ ],
+ [
+  {n:"Pompe aux anneaux, pieds au sol",eq:['anneaux'],reps:"3 × 8–12",cue:"Anneaux bas. Tourne les paumes vers l'avant en haut. Apprivoise l'instabilité avant de charger."},
+  {n:"Écarté couché élastique",eq:['elastique'],reps:"3 × 12",cue:"Élastique ancré derrière toi. Bras presque tendus, ramène les mains devant la poitrine sans casser les coudes."}
+ ],
+ [
+  {n:"Pompe aux anneaux, pieds surélevés",eq:['anneaux'],reps:"3 × 8",cue:"C'est ici que le haut des pecs travaille. Épaules plus basses que les pieds, gainage constant."},
+  {n:"Pompe archer",eq:['rien'],reps:"3 × 6 / côté",cue:"Un bras tendu sur le côté, tout le poids sur l'autre. Étape avant la pompe à un bras."}
+ ]
 ],
 pullV:[
- {n:"Tirage vertical élastique",eq:['elastique'],reps:"3 × 15",cue:"Élastique ancré en haut. Amorce par les omoplates, pas par les coudes."},
- {n:"Traction excentrique",eq:['barre','anneaux'],reps:"4 × 4",cue:"Tu montes assisté, tu descends en 5 secondes. La meilleure marche avant la traction stricte."},
- {n:"Traction stricte",eq:['barre','anneaux'],reps:"4 × 4–6",cue:"Amplitude complète, pas d'élan. Garde 2 reps en réserve."},
- {n:"Traction lestée",eq:['barre','anneaux'],reps:"4 × 4",cue:"Charge légère au début. Si l'amplitude se raccourcit, tu es trop lourd."}
+ [
+  {n:"Tirage vertical élastique",eq:['elastique'],reps:"3 × 15",cue:"Élastique ancré en haut. Amorce par les omoplates, pas par les coudes."},
+  {n:"Suspension à la barre (dead hang)",eq:['barre','anneaux'],reps:"3 × 20–30 s",cue:"Épaules relâchées ou légèrement engagées, laisse le dos s'étirer. Excellent pour préparer les tractions."}
+ ],
+ [
+  {n:"Traction excentrique",eq:['barre','anneaux'],reps:"4 × 4",cue:"Tu montes assisté, tu descends en 5 secondes. La meilleure marche avant la traction stricte."},
+  {n:"Tirage vertical élastique, résistance forte",eq:['elastique'],reps:"3 × 10",cue:"Élastique plus résistant. Vise le même mouvement qu'à la traction : omoplates d'abord."}
+ ],
+ [
+  {n:"Traction stricte",eq:['barre','anneaux'],reps:"4 × 4–6",cue:"Amplitude complète, pas d'élan. Garde 2 reps en réserve."},
+  {n:"Traction prise serrée, supination",eq:['barre','anneaux'],reps:"4 × 4–6",cue:"Mains rapprochées, paumes vers toi. Sollicite davantage les biceps ; complète la prise pronation."}
+ ],
+ [
+  {n:"Traction lestée",eq:['barre','anneaux'],reps:"4 × 4",cue:"Charge légère au début. Si l'amplitude se raccourcit, tu es trop lourd."},
+  {n:"Traction archer",eq:['barre','anneaux'],reps:"4 × 3 / côté",cue:"Tire surtout d'un côté, l'autre bras reste tendu en soutien. Très exigeant — garde le dos plat."}
+ ]
 ],
 pullH:[
- {n:"Row aux anneaux, incliné",eq:['anneaux'],reps:"3 × 12",cue:"Plus tu es debout, plus c'est facile. Omoplates serrées en fin de tirage."},
- {n:"Row aux anneaux, corps horizontal",eq:['anneaux'],reps:"3 × 10",cue:"Talons au sol, corps en planche du talon à la tête. Pas de bassin qui tombe."},
- {n:"Row aux anneaux, pieds surélevés",eq:['anneaux'],reps:"3 × 8",cue:"Pieds sur une chaise. Pause 1 seconde en haut."},
- {n:"Row 1 bras aux anneaux",eq:['anneaux'],reps:"3 × 6 / côté",cue:"Résiste à la rotation. Très exigeant pour le tronc."}
+ [
+  {n:"Row aux anneaux, incliné",eq:['anneaux'],reps:"3 × 12",cue:"Plus tu es debout, plus c'est facile. Omoplates serrées en fin de tirage."},
+  {n:"Row élastique",eq:['elastique'],reps:"3 × 15",cue:"Élastique ancré devant à hauteur de poitrine. Tire les coudes vers l'arrière, omoplates serrées."}
+ ],
+ [
+  {n:"Row aux anneaux, corps horizontal",eq:['anneaux'],reps:"3 × 10",cue:"Talons au sol, corps en planche du talon à la tête. Pas de bassin qui tombe."},
+  {n:"Row élastique, tempo lent",eq:['elastique'],reps:"3 × 12",cue:"3 secondes en phase de tirage. Le tronc ne bouge pas, seuls les bras travaillent."}
+ ],
+ [
+  {n:"Row aux anneaux, pieds surélevés",eq:['anneaux'],reps:"3 × 8",cue:"Pieds sur une chaise. Pause 1 seconde en haut."},
+  {n:"Row élastique 1 bras",eq:['elastique'],reps:"3 × 10 / côté",cue:"Résiste à la rotation du buste pendant que tu tires. Bassin face à l'ancrage."}
+ ],
+ [
+  {n:"Row 1 bras aux anneaux",eq:['anneaux'],reps:"3 × 6 / côté",cue:"Résiste à la rotation. Très exigeant pour le tronc."},
+  {n:"Row élastique 1 bras, avec pause",eq:['elastique'],reps:"3 × 8 / côté",cue:"Pause d'une seconde coude en arrière. Le contrôle compte plus que la vitesse."}
+ ]
 ],
 core:[
- {n:"Suitcase carry",eq:['kb'],reps:"4 × 30 s / côté",cue:"Un KB d'un côté, marche droit. Épaules de niveau — c'est tout l'exercice."},
- {n:"Renegade row",eq:['kb'],reps:"3 × 8 / côté",cue:"Pieds larges. Le bassin ne tourne pas quand tu tires."},
- {n:"Rack walk 1 bras",eq:['kb'],reps:"4 × 30 s / côté",cue:"KB en rack, côtes basses. Respire normalement pendant la marche."},
- {n:"Turkish get-up",eq:['kb'],reps:"3 × 2 / côté",cue:"Lent, une phase à la fois, les yeux sur le KB. C'est un test de mobilité, pas un exercice de force."}
+ [
+  {n:"Suitcase carry",eq:['kb'],reps:"4 × 30 s / côté",cue:"Un KB d'un côté, marche droit. Épaules de niveau — c'est tout l'exercice."},
+  {n:"Dead bug",eq:['rien'],reps:"3 × 10 / côté",cue:"Bas du dos plaqué au sol en permanence. Bras et jambe opposés descendent ensemble, lentement."}
+ ],
+ [
+  {n:"Renegade row",eq:['kb'],reps:"3 × 8 / côté",cue:"Pieds larges. Le bassin ne tourne pas quand tu tires."},
+  {n:"Bird dog",eq:['rien'],reps:"3 × 10 / côté",cue:"Bras et jambe opposés tendus à l'horizontale. Bassin de niveau, pas de bascule."}
+ ],
+ [
+  {n:"Rack walk 1 bras",eq:['kb'],reps:"4 × 30 s / côté",cue:"KB en rack, côtes basses. Respire normalement pendant la marche."},
+  {n:"Planche latérale",eq:['rien'],reps:"3 × 30–40 s / côté",cue:"Corps aligné des chevilles à la tête. La hanche ne tombe pas, ne monte pas."}
+ ],
+ [
+  {n:"Turkish get-up",eq:['kb'],reps:"3 × 2 / côté",cue:"Lent, une phase à la fois, les yeux sur le KB. C'est un test de mobilité, pas un exercice de force."},
+  {n:"Planche latérale, jambe levée",eq:['rien'],reps:"3 × 25–30 s / côté",cue:"Même gainage que la planche latérale, jambe du dessus levée et tenue. Le bassin reste stable."}
+ ]
 ]
 };
 const ACCESS={n:"Dips",eq:['anneaux','barre'],reps:"2 × 8",cue:"En accessoire, pas en poussée principale. Amplitude où tu ne sens rien tirer dans l'épaule."};
@@ -294,11 +382,15 @@ function readyToProgress(){
 }
 
 /* ---------- génération ---------- */
-function pick(patId){
+function pick(patId,exclude){
   const lvl=S.levels[patId],list=LIB[patId];
-  for(let i=lvl;i>=0;i--){ if(list[i].eq.some(e=>S.equip.includes(e))) return {...list[i],lvl:i+1,pat:patId}; }
-  for(let i=lvl+1;i<list.length;i++){ if(list[i].eq.some(e=>S.equip.includes(e))) return {...list[i],lvl:i+1,pat:patId}; }
-  return null;
+  const matches=(i,skip)=>list[i].filter(v=>v.eq.some(e=>S.equip.includes(e))&&(!skip||v.n!==exclude));
+  const search=skip=>{
+    for(let i=lvl;i>=0;i--){ const v=matches(i,skip); if(v.length) return {...v[Math.floor(Math.random()*v.length)],lvl:i+1,pat:patId}; }
+    for(let i=lvl+1;i<list.length;i++){ const v=matches(i,skip); if(v.length) return {...v[Math.floor(Math.random()*v.length)],lvl:i+1,pat:patId}; }
+    return null;
+  };
+  return search(true)||search(false);
 }
 function generate(){
   let ex=PATTERNS.map(p=>pick(p.id)).filter(Boolean);
@@ -316,10 +408,11 @@ function paintWod(){
     `<div class="ex"><div class="pat">Avant</div><div class="body">
       <div class="nm">${WARM.n}</div><div class="dose">${WARM.reps}</div>
       <div class="cue">${WARM.cue}</div></div></div>`+
-    wod.ex.map(e=>`<div class="ex"><div class="pat">${e.pat?PATTERNS.find(p=>p.id===e.pat).short:'Accessoire'}</div>
+    wod.ex.map((e,i)=>`<div class="ex"><div class="pat">${e.pat?PATTERNS.find(p=>p.id===e.pat).short:'Accessoire'}</div>
       <div class="body"><div class="nm">${e.n}${e.lvl?`<span class="lvl">P${e.lvl}</span>`:''}</div>
       <div class="dose">${e.reps} · repos ${wod.rest}s</div>
-      <div class="cue">${e.cue}</div></div></div>`).join('');
+      <div class="cue">${e.cue}</div></div>
+      ${e.pat?`<button class="swap" data-swap="${i}" title="Changer d'exercice" aria-label="Changer d'exercice">⟳</button>`:''}</div>`).join('');
 }
 
 /* ---------- chrono ---------- */
@@ -394,9 +487,10 @@ function paintLvl(){
   document.getElementById('subtitle').textContent='Tu montes quand tu tiens le haut de la fourchette, deux séances de suite, sans douleur.';
   wheel(null);
   document.getElementById('lvlList').innerHTML=PATTERNS.map(p=>{
-    const cur=S.levels[p.id];
+    const cur=S.levels[p.id],variants=LIB[p.id][cur];
+    const names=variants.map(v=>v.n).join(' · ');
     return `<div class="ex"><div class="pat">${p.short}</div><div class="body">
-      <div class="nm">${LIB[p.id][cur].n}</div>
+      <div class="nm">${names}</div>
       <div class="chips" style="margin-top:8px">
         <button class="chip" data-lv="${p.id}:-1" ${cur===0?'disabled':''}>−</button>
         <button class="chip" aria-pressed="true">Palier ${cur+1} / 4</button>
@@ -425,6 +519,9 @@ document.getElementById('equip').onclick=e=>{const b=e.target.closest('[data-e]'
   if(!S.equip.length)S.equip=['rien'];save();paintHome()};
 document.getElementById('gen').onclick=()=>{generate();show('wod')};
 document.getElementById('regen').onclick=generate;
+document.getElementById('wodList').onclick=e=>{const b=e.target.closest('[data-swap]');if(!b)return;
+  const i=+b.dataset.swap,cur=wod.ex[i],next=pick(cur.pat,cur.n);
+  if(next){wod.ex[i]=next;paintWod();}};
 document.getElementById('start').onclick=startRun;
 document.getElementById('doneSet').onclick=nextSet;
 document.getElementById('pause').onclick=e=>{run.paused=!run.paused;
