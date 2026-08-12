@@ -124,10 +124,6 @@ nav.tabs button.on{color:var(--signal)}
       <span class="label">Durée</span>
       <div class="chips" id="dur"></div>
     </section>
-    <section>
-      <span class="label">Matériel disponible</span>
-      <div class="chips" id="equip"></div>
-    </section>
     <section id="readyBox"></section>
     <button class="btn" id="gen">Générer la séance</button>
   </div>
@@ -337,12 +333,13 @@ core:[
 const ACCESS={n:"Dips",eq:['anneaux','barre'],reps:"2 × 8",cue:"En accessoire, pas en poussée principale. Amplitude où tu ne sens rien tirer dans l'épaule."};
 const WARM={n:"Échauffement",reps:"5 min",cue:"Cercles d'épaules, cat-cow, fentes avec rotation, 20 swings légers. Ne saute pas cette étape."};
 
-const EQUIP=[{id:'kb',l:'Kettlebell'},{id:'anneaux',l:'Anneaux'},{id:'barre',l:'Barre de traction'},
-  {id:'elastique',l:'Élastiques'},{id:'rien',l:'Poids du corps'}];
+const ALL_EQUIP=['kb','anneaux','barre','elastique','rien'];
 const DURS=[{v:20,l:'20 min'},{v:30,l:'30 min'},{v:45,l:'45 min'}];
 
 /* ---------- état ---------- */
-let S={equip:['kb','elastique','rien'],dur:30,levels:{},history:[]};
+// Tout le matériel est toujours considéré comme disponible : plus de sélection à faire,
+// et ça garantit qu'aucun pattern (charnière, tirage...) ne soit exclu faute d'équipement.
+let S={equip:ALL_EQUIP,dur:30,levels:{},history:[]};
 PATTERNS.forEach(p=>S.levels[p.id]=1);   // index 0–3, départ palier 2
 let wod=null,run=null;
 
@@ -361,8 +358,6 @@ function wheel(states){
 function paintHome(){
   document.getElementById('dur').innerHTML=DURS.map(d=>
     `<button class="chip" data-d="${d.v}" aria-pressed="${S.dur===d.v}">${d.l}</button>`).join('');
-  document.getElementById('equip').innerHTML=EQUIP.map(e=>
-    `<button class="chip" data-e="${e.id}" aria-pressed="${S.equip.includes(e.id)}">${e.l}</button>`).join('');
   const ready=readyToProgress();
   document.getElementById('readyBox').innerHTML=ready.length
     ? `<div class="card tip"><p><b>Prêt à monter d'un cran :</b> ${ready.join(', ')}. Deux séances propres à RPE ≤ 6 sans douleur. Passe au palier suivant dans l'onglet Niveaux.</p></div>`
@@ -514,9 +509,6 @@ function paintHist(){
 /* ---------- événements ---------- */
 document.getElementById('dur').onclick=e=>{const b=e.target.closest('[data-d]');if(!b)return;
   S.dur=+b.dataset.d;save();paintHome()};
-document.getElementById('equip').onclick=e=>{const b=e.target.closest('[data-e]');if(!b)return;
-  const id=b.dataset.e;S.equip.includes(id)?S.equip=S.equip.filter(x=>x!==id):S.equip.push(id);
-  if(!S.equip.length)S.equip=['rien'];save();paintHome()};
 document.getElementById('gen').onclick=()=>{generate();show('wod')};
 document.getElementById('regen').onclick=generate;
 document.getElementById('wodList').onclick=e=>{const b=e.target.closest('[data-swap]');if(!b)return;
@@ -554,7 +546,7 @@ document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>{
   const v=b.dataset.v;if(v==='home'){paintHome();show('home')}else show(v)});
 
 function save(){store.set('wodapp',S)}
-(()=>{const s=store.get('wodapp');if(s)S={...S,...s};paintHome()})();
+(()=>{const s=store.get('wodapp');if(s)S={...S,...s};S.equip=ALL_EQUIP;paintHome()})();
 
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js'));
