@@ -100,16 +100,19 @@ body.has-nav .wrap{padding-bottom:calc(env(safe-area-inset-bottom) + 100px)}
 
 /* --- chrono --- */
 .runtop{display:flex;justify-content:space-between;align-items:center}
-.runmeta{color:var(--text-dim-effort);font-size:12px;font-weight:700}
+.runmeta{color:var(--text-dim);font-size:12px;font-weight:700}
+#v-run.phase-effort .runmeta{color:var(--text-dim-effort)}
 #v-run.phase-rest .runmeta{color:var(--text-dim-rest)}
 .pill{border-radius:var(--rp);padding:5px 14px;font-size:12px;font-weight:900;letter-spacing:.1em}
 .pill.effort{background:var(--effort);color:var(--on-effort)}
 .pill.rest{background:var(--rest);color:var(--on-rest)}
+.pill.neutral{background:var(--accent);color:var(--on-accent)}
 
 .runcenter{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
 .exname{color:var(--text);font-size:24px;font-weight:800;text-align:center}
 #v-run.phase-rest .exname{color:var(--text-dim-rest);font-size:16px;font-weight:700}
-.clockbox{border-radius:20px;padding:8px 28px;border:3px solid var(--effort)}
+.clockbox{border-radius:20px;padding:8px 28px;border:3px solid var(--accent)}
+#v-run.phase-effort .clockbox{border-color:var(--effort)}
 #v-run.phase-rest .clockbox{border-color:var(--rest)}
 .clock{color:#fff;font-size:88px;font-weight:900;letter-spacing:-.02em;line-height:1;
   font-variant-numeric:tabular-nums;display:inline-block}
@@ -118,11 +121,13 @@ body.has-nav .wrap{padding-bottom:calc(env(safe-area-inset-bottom) + 100px)}
   0%{transform:scale(1.15);text-shadow:0 0 26px currentColor}
   100%{transform:scale(1);text-shadow:0 0 0 transparent}
 }
-.rundose{font-size:12px;color:var(--text-dim-effort);text-align:center;line-height:1.5;max-width:320px}
+.rundose{font-size:12px;color:var(--text-dim);text-align:center;line-height:1.5;max-width:320px}
+#v-run.phase-effort .rundose{color:var(--text-dim-effort)}
 #v-run.phase-rest .rundose{color:var(--text-dim-rest)}
 
 .nextbanner{border-radius:var(--r);padding:10px 14px;font-size:12px;font-weight:700;
-  background:rgba(255,255,255,.05);color:var(--text-dim-effort)}
+  background:rgba(255,255,255,.05);color:var(--text-dim)}
+#v-run.phase-effort .nextbanner{color:var(--text-dim-effort)}
 #v-run.phase-rest .nextbanner{background:rgba(20,224,180,.12);color:var(--rest);font-size:14px;font-weight:900}
 
 .ctrl{display:flex;gap:12px;align-items:center;justify-content:center}
@@ -130,7 +135,8 @@ body.has-nav .wrap{padding-bottom:calc(env(safe-area-inset-bottom) + 100px)}
   border-radius:var(--rp);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}
 .ctrl .side{width:56px;height:56px}
 .ctrl .pause{flex:1;max-width:180px;height:68px;font-size:16px;font-weight:900;
-  border:none;background:var(--effort);color:var(--on-effort)}
+  border:none;background:var(--accent);color:var(--on-accent)}
+#v-run.phase-effort .ctrl .pause{background:var(--effort);color:var(--on-effort)}
 #v-run.phase-rest .ctrl .pause{background:var(--rest);color:var(--on-rest)}
 
 /* --- bilan --- */
@@ -429,6 +435,7 @@ const DURS=[{v:20,l:'20'},{v:30,l:'30'},{v:45,l:'45'}];
 const MODES=[{id:'force',l:'FORCE',sub:'Paliers'},{id:'vo2',l:'VO2MAX',sub:'Cardio'}];
 const VO2_WORK=40, VO2_REST=20;
 const VO2_ROUNDS={20:3,30:5,45:7};
+const PREP_SECONDS=20, WARMUP_SECONDS=300;
 
 /* ---------- état ---------- */
 // Tout le matériel est toujours considéré comme disponible : plus de sélection à faire,
@@ -555,20 +562,27 @@ function ensureAudio(){
   }catch(e){}
   return audioCtx;
 }
-const BEEP_FREQ={tick:880,work:1320,rest:440};
-function beep(kind){
+function tone(freq,gain,dur){
   const ctx=ensureAudio(); if(!ctx) return;
   try{
-    const dur=kind==='tick'?0.09:0.18;
     const o=ctx.createOscillator(),g=ctx.createGain();
     o.connect(g);g.connect(ctx.destination);
     const t0=ctx.currentTime;
-    o.type='sine';o.frequency.setValueAtTime(BEEP_FREQ[kind],t0);
+    o.type='sine';o.frequency.setValueAtTime(freq,t0);
     g.gain.setValueAtTime(0.0001,t0);
-    g.gain.exponentialRampToValueAtTime(0.25,t0+0.01);
+    g.gain.exponentialRampToValueAtTime(gain,t0+0.01);
     g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
     o.start(t0);o.stop(t0+dur+0.02);
   }catch(e){}
+}
+const BEEP_FREQ={work:1320,rest:440};
+function beep(kind){ tone(BEEP_FREQ[kind]||880,0.28,0.18); }
+// Bip crescendo sur les dernières secondes d'un décompte : plus fort et plus aigu
+// à mesure que ça approche de zéro, pour qu'on l'entende venir sans regarder l'écran.
+function beepCountdown(secondsLeft,window){
+  if(secondsLeft<1||secondsLeft>window) return;
+  const p=(window-secondsLeft+1)/window;
+  tone(650+p*550,0.14+p*0.3,0.08+p*0.09);
 }
 function beepEnd(){
   const ctx=ensureAudio(); if(!ctx) return;
@@ -592,31 +606,57 @@ function flashClock(){
 
 function sets(reps){const m=reps.match(/^(\d+) ×/);return m?+m[1]:3}
 function startRun(){
-  const btn=document.getElementById('doneSet');
-  document.getElementById('pause').textContent='⏸ PAUSE';
   ensureAudio();
-  if(wod.mode==='vo2'){
-    run={mode:'vo2',round:1,station:0,phase:'work',t:wod.circuit.work,paused:false};
-    btn.textContent='SKIP';
-    show('run');keepAwake(true);
-    clearInterval(run.iv);run.iv=setInterval(tick,1000);paintVo2Run();
-    return;
-  }
-  run={mode:'force',i:0,set:1,rest:false,t:0,paused:false,done:{}};
-  btn.textContent='SKIP';
+  document.getElementById('pause').textContent='⏸ PAUSE';
+  document.getElementById('doneSet').textContent='SKIP';
+  run={mode:wod.mode,stage:'prep',t:PREP_SECONDS,paused:false};
   show('run');keepAwake(true);
-  clearInterval(run.iv);run.iv=setInterval(tick,1000);paintRun();
+  clearInterval(run.iv);run.iv=setInterval(tick,1000);paintStage();
+}
+function enterMain(){
+  if(run.mode==='vo2'){
+    run.stage='circuit'; run.round=1; run.station=0; run.phase='work'; run.t=wod.circuit.work;
+    paintVo2Run();
+  }else{
+    run.stage='main'; run.i=0; run.set=1; run.rest=false; run.t=0; run.done={};
+    paintRun();
+  }
+}
+function advanceStage(){
+  beep('work'); flashClock();
+  if(run.stage==='prep'){ run.stage='warmup'; run.t=WARMUP_SECONDS; paintStage(); }
+  else enterMain();
+}
+function paintStage(){
+  const t=Math.max(0,run.t),m=String(Math.floor(t/60)).padStart(2,'0'),s=String(t%60).padStart(2,'0');
+  document.getElementById('clock').textContent=m+':'+s;
+  document.getElementById('phasePill').className='pill neutral';
+  document.getElementById('phasePill').textContent=run.stage==='prep'?'PRÉPARATION':'ÉCHAUFFEMENT';
+  setPhase(null);
+  document.getElementById('runMeta').textContent='AVANT SÉANCE';
+  document.getElementById('now').textContent=run.stage==='prep'?'Installe-toi':WARM.n;
+  document.getElementById('rundose').textContent=run.stage==='prep'
+    ?'Pose le téléphone et prépare ton matériel.':WARM.cue;
+  const firstName=wod.mode==='vo2'?wod.circuit.stations[0].n:wod.ex[0].n;
+  document.getElementById('next').textContent=run.stage==='prep'?'SUIVANT · Échauffement':'SUIVANT · '+firstName;
 }
 function tick(){
   if(!run||run.paused)return;
-  if(run.mode==='vo2'){
+  if(run.stage==='prep'||run.stage==='warmup'){
+    run.t--;
+    beepCountdown(run.t,run.stage==='warmup'?10:5);
+    if(run.t<=0){ advanceStage(); return; }
+    paintStage();
+    return;
+  }
+  if(run.stage==='circuit'){
     run.t--;
     if(run.t<=0){
       const phase=vo2Advance();
       if(phase==='end') return;
       beep(phase);flashClock();
-    } else if(run.t<=3){
-      beep('tick');
+    } else {
+      beepCountdown(run.t,5);
     }
     paintVo2Run();
     return;
@@ -624,7 +664,7 @@ function tick(){
   if(run.rest){
     run.t--;
     if(run.t<=0){ run.rest=false; run.t=0; beep('work'); flashClock(); }
-    else if(run.t<=3){ beep('tick'); }
+    else beepCountdown(run.t,5);
   }
   else run.t++;
   paintClock();
@@ -759,7 +799,8 @@ document.getElementById('wodList').onclick=e=>{const b=e.target.closest('[data-s
   if(next){wod.ex[i]=next;highlightIdx=i;paintWod();}};
 document.getElementById('start').onclick=startRun;
 document.getElementById('doneSet').onclick=()=>{
-  if(run.mode==='vo2'){
+  if(run.stage==='prep'||run.stage==='warmup'){ advanceStage(); return; }
+  if(run.stage==='circuit'){
     const phase=vo2Advance();
     if(phase==='end') return;
     beep(phase);flashClock();paintVo2Run();
