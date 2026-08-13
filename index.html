@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#0F1416">
+<meta name="theme-color" content="#0B0E11">
 <title>Séance</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png" type="image/png">
@@ -13,177 +13,243 @@
 
 <style>
 :root{
-  --ground:#0F1416;
-  --ground-2:#161D20;
-  --line:#2A3438;
-  --bone:#EDE7DA;
-  --bone-dim:#8B948F;
-  --signal:#E8B23A;
-  --rest:#4FA6A0;
-  --alert:#C9563F;
-  --r:2px;
+  --bg:#0B0E11;
+  --bg-effort:#180D0C;
+  --bg-rest:#0A1917;
+  --card:#14181C;
+  --text:#F2EEE4;
+  --text-dim:#838B8F;
+  --text-dim-effort:#B4938E;
+  --text-dim-rest:#7FB9AC;
+  --accent:#FF8A3D;
+  --on-accent:#160B02;
+  --effort:#FF4D3D;
+  --on-effort:#180D0C;
+  --rest:#14E0B4;
+  --on-rest:#0A1917;
+  --alert:#FF3B30;
+  --line:rgba(242,238,228,.12);
+  --line-2:rgba(242,238,228,.2);
+  --r:10px;
+  --rp:999px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{background:var(--ground);color:var(--bone);
-  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+html,body{height:100%;background:var(--bg);color:var(--text);
+  font-family:-apple-system,system-ui,"Segoe UI",sans-serif;
   font-variant-numeric:tabular-nums;overscroll-behavior:none}
-body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);min-height:100vh}
-.wrap{max-width:680px;margin:0 auto;padding:18px 18px 90px}
+body{height:100vh}
+body.phase-effort{background:var(--bg-effort)}
+body.phase-rest{background:var(--bg-rest)}
 
-.eyebrow{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--bone-dim);font-weight:600}
-h1{font-size:31px;font-weight:800;letter-spacing:-.02em;line-height:1.02;margin:6px 0 2px}
-h2{font-size:15px;font-weight:700;letter-spacing:.01em}
-.sub{color:var(--bone-dim);font-size:13px;line-height:1.5}
+.wrap{max-width:680px;margin:0 auto;height:100vh;display:flex;flex-direction:column;
+  padding:calc(env(safe-area-inset-top) + 24px) 22px calc(env(safe-area-inset-bottom) + 40px)}
+body.has-nav .wrap{padding-bottom:calc(env(safe-area-inset-bottom) + 100px)}
 
-header.top{display:flex;justify-content:space-between;align-items:flex-end;
-  border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:20px}
+.view{display:none;flex-direction:column;flex:1;gap:20px;min-height:0;overflow-y:auto}
+.view.on{display:flex}
+.spacer{flex:1}
 
-/* --- roue des patterns : élément signature --- */
-.wheel{display:block;width:104px;height:104px;flex:none}
-.seg{fill:none;stroke:var(--line);stroke-width:9;transition:stroke .35s}
-.seg.on{stroke:var(--signal)}
-.seg.done{stroke:var(--rest)}
+.h{font-size:20px;font-weight:900;letter-spacing:.02em;color:var(--text)}
+.meta{font-size:12px;font-weight:700;color:var(--text-dim)}
+.row{display:flex;justify-content:space-between;align-items:baseline}
 
-section{margin-bottom:26px}
-.label{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--bone-dim);
-  font-weight:600;margin-bottom:9px;display:block}
+/* --- tuiles Force / VO2max --- */
+.tiles{display:flex;gap:10px}
+.tile{flex:1;border:2px solid var(--line);border-radius:var(--r);padding:16px;background:none;
+  font:inherit;text-align:left;cursor:pointer}
+.tile .nm{color:var(--text);font-weight:800;font-size:15px}
+.tile .sub{color:var(--text-dim);font-size:11px;margin-top:4px}
+.tile.on{border-color:var(--accent);background:rgba(255,138,61,.08)}
+.tile.on .nm{color:var(--accent)}
 
-.chips{display:flex;flex-wrap:wrap;gap:7px}
-.chip{border:1px solid var(--line);background:transparent;color:var(--bone-dim);
-  padding:10px 14px;border-radius:var(--r);font:inherit;font-size:14px;font-weight:600;cursor:pointer}
-.chip[aria-pressed="true"]{border-color:var(--signal);color:var(--ground);background:var(--signal)}
+/* --- stepper (durée / paliers) --- */
+.stepper{display:flex;align-items:center;justify-content:center;gap:20px;padding:12px 0}
+.step{width:40px;height:40px;border-radius:var(--rp);border:1px solid var(--line-2);background:none;
+  color:var(--text);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;font:inherit}
+.step:disabled{opacity:.3}
+.step.sm{width:26px;height:26px;font-size:14px}
+.stepval{color:var(--text);font-size:40px;font-weight:900;font-variant-numeric:tabular-nums}
+.stepval .unit{font-size:16px;color:var(--text-dim);font-weight:700}
 
-.btn{width:100%;padding:17px;border:none;border-radius:var(--r);background:var(--signal);
-  color:var(--ground);font:inherit;font-size:15px;font-weight:800;letter-spacing:.05em;
-  text-transform:uppercase;cursor:pointer}
-.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--bone)}
+.btn{width:100%;padding:18px;border:none;border-radius:var(--r);background:var(--accent);
+  color:var(--on-accent);font:inherit;font-size:15px;font-weight:900;letter-spacing:.04em;cursor:pointer}
+.btn.ghost{background:none;border:1px solid var(--line);color:var(--text);font-weight:800;padding:16px}
 .btn.wide{margin-top:8px}
 .btn:disabled{opacity:.35}
 
-/* --- liste d'exercices --- */
-.ex{display:flex;gap:13px;padding:14px 0;border-bottom:1px solid var(--line);align-items:flex-start}
-.ex:last-child{border-bottom:none}
-.ex .pat{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--bone-dim);
-  font-weight:700;width:74px;flex:none;padding-top:3px;line-height:1.35}
-.ex .body{flex:1;min-width:0}
-.ex .nm{font-size:16px;font-weight:700;line-height:1.25}
-.ex .dose{color:var(--signal);font-size:13px;font-weight:600;margin-top:3px}
-.ex .cue{color:var(--bone-dim);font-size:12.5px;line-height:1.45;margin-top:4px}
-.lvl{font-size:10px;font-weight:800;color:var(--bone-dim);border:1px solid var(--line);
-  padding:2px 5px;border-radius:var(--r);margin-left:6px;vertical-align:2px}
-.ex .swap{flex:none;align-self:flex-start;background:transparent;border:1px solid var(--line);
-  color:var(--bone-dim);font-size:15px;line-height:1;width:30px;height:30px;border-radius:var(--r);
-  cursor:pointer;padding:0}
-.ex .swap:active{border-color:var(--signal);color:var(--signal)}
+.card{border:1px solid var(--line);padding:14px;border-radius:var(--r);background:var(--card)}
+.warn{border-left:3px solid var(--alert)}
+.tip{border-left:3px solid var(--accent)}
+.card p{font-size:13px;line-height:1.5;color:var(--text-dim)}
+.card p b{color:var(--text)}
 
-/* --- timer --- */
-.timer{text-align:center;padding:8px 0 4px}
-.clock{font-size:88px;font-weight:800;letter-spacing:-.045em;line-height:1;font-variant-numeric:tabular-nums;display:inline-block}
-.clock.rest{color:var(--rest)}
+/* --- liste d'exercices --- */
+.list{display:flex;flex-direction:column;gap:10px;overflow-y:auto;flex:1;min-height:0;padding-bottom:2px}
+.ex{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.ex.hi{border:2px solid var(--accent);background:rgba(255,138,61,.06)}
+.ex .body{flex:1;min-width:0}
+.ex .nm{color:var(--text);font-weight:800;font-size:14px}
+.ex.hi .nm{color:var(--accent)}
+.ex .dose{color:var(--text-dim);font-size:11px;margin-top:2px;line-height:1.4}
+.lvl{font-size:9px;font-weight:800;color:var(--text-dim);border:1px solid var(--line);
+  padding:1px 5px;border-radius:5px;margin-left:5px;vertical-align:1px}
+.swap{flex:none;width:34px;height:34px;border-radius:var(--rp);border:1px solid var(--line-2);
+  background:none;color:var(--text);font-size:14px;cursor:pointer;padding:0;
+  display:flex;align-items:center;justify-content:center}
+.ex.hi .swap{border-color:rgba(255,138,61,.4);color:var(--accent)}
+
+/* --- chrono --- */
+.runtop{display:flex;justify-content:space-between;align-items:center}
+.runmeta{color:var(--text-dim-effort);font-size:12px;font-weight:700}
+#v-run.phase-rest .runmeta{color:var(--text-dim-rest)}
+.pill{border-radius:var(--rp);padding:5px 14px;font-size:12px;font-weight:900;letter-spacing:.1em}
+.pill.effort{background:var(--effort);color:var(--on-effort)}
+.pill.rest{background:var(--rest);color:var(--on-rest)}
+
+.runcenter{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.exname{color:var(--text);font-size:24px;font-weight:800;text-align:center}
+#v-run.phase-rest .exname{color:var(--text-dim-rest);font-size:16px;font-weight:700}
+.clockbox{border-radius:20px;padding:8px 28px;border:3px solid var(--effort)}
+#v-run.phase-rest .clockbox{border-color:var(--rest)}
+.clock{color:#fff;font-size:88px;font-weight:900;letter-spacing:-.02em;line-height:1;
+  font-variant-numeric:tabular-nums;display:inline-block}
 .clock.flash{animation:clockFlash .35s ease-out}
 @keyframes clockFlash{
   0%{transform:scale(1.15);text-shadow:0 0 26px currentColor}
   100%{transform:scale(1);text-shadow:0 0 0 transparent}
 }
-.phase{font-size:12px;letter-spacing:.24em;text-transform:uppercase;font-weight:700;color:var(--bone-dim);margin-bottom:12px}
-.now{font-size:24px;font-weight:800;line-height:1.15;margin:16px 0 4px}
-.next{color:var(--bone-dim);font-size:13px;margin-top:14px}
-.row2{display:flex;gap:9px;margin-top:20px}
-.row2 .btn{flex:1}
+.rundose{font-size:12px;color:var(--text-dim-effort);text-align:center;line-height:1.5;max-width:320px}
+#v-run.phase-rest .rundose{color:var(--text-dim-rest)}
 
-.card{border:1px solid var(--line);padding:14px;border-radius:var(--r);background:var(--ground-2)}
-.warn{border-left:3px solid var(--alert)}
-.tip{border-left:3px solid var(--signal)}
-.card p{font-size:13px;line-height:1.5;color:var(--bone-dim)}
-.card p b{color:var(--bone)}
+.nextbanner{border-radius:var(--r);padding:10px 14px;font-size:12px;font-weight:700;
+  background:rgba(255,255,255,.05);color:var(--text-dim-effort)}
+#v-run.phase-rest .nextbanner{background:rgba(20,224,180,.12);color:var(--rest);font-size:14px;font-weight:900}
 
-.hist{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);font-size:13.5px}
-.hist span{color:var(--bone-dim)}
+.ctrl{display:flex;gap:12px;align-items:center;justify-content:center}
+.ctrl button{font:inherit;cursor:pointer;border:1px solid var(--line-2);background:none;color:var(--text);
+  border-radius:var(--rp);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.ctrl .side{width:56px;height:56px}
+.ctrl .pause{flex:1;max-width:180px;height:68px;font-size:16px;font-weight:900;
+  border:none;background:var(--effort);color:var(--on-effort)}
+#v-run.phase-rest .ctrl .pause{background:var(--rest);color:var(--on-rest)}
 
-.slider{width:100%;accent-color:var(--signal);margin:10px 0}
+/* --- bilan --- */
+.rpe-grid{display:flex;gap:5px}
+.rpe-cell{flex:1;height:40px;border-radius:6px;border:1px solid var(--line-2);background:none;
+  display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:12px;
+  font-weight:700;cursor:pointer;font:inherit}
+.rpe-cell.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:900}
+.rpetxt{color:var(--text-dim);font-size:12px;line-height:1.5}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line-2);background:none;color:var(--text-dim);
+  padding:10px 16px;border-radius:var(--rp);font:inherit;font-size:12px;font-weight:700;cursor:pointer;text-align:center}
+.chip[aria-pressed="true"]{background:rgba(242,238,228,.1);border-color:transparent;color:var(--text);font-weight:800}
+
+/* --- niveaux --- */
+.lvlbar{display:flex;gap:4px;margin-top:8px}
+.lvlseg{flex:1;height:6px;border-radius:3px;background:var(--line)}
+.lvlseg.on{background:var(--accent)}
+.lvlnames{color:var(--text-dim);font-size:11px;margin-top:8px;line-height:1.4}
+
+/* --- historique --- */
+.hist{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.hist .d{color:var(--text);font-size:13px;font-weight:700}
+.hist .m{color:var(--text-dim);font-size:11px;margin-top:1px}
+.badge{flex:none;font-size:10px;font-weight:900;border-radius:var(--rp);padding:4px 10px;letter-spacing:.02em}
+.badge.force{background:var(--effort);color:var(--on-effort)}
+.badge.vo2{background:var(--rest);color:var(--on-rest)}
+
 .hide{display:none!important}
-
-nav.tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--ground-2);
+nav.tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);
   border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:9}
-nav.tabs button{flex:1;background:none;border:none;color:var(--bone-dim);font:inherit;
-  font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:15px 4px;cursor:pointer}
-nav.tabs button.on{color:var(--signal)}
+nav.tabs button{flex:1;background:none;border:none;color:var(--text-dim);font:inherit;
+  font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:15px 4px;cursor:pointer}
+nav.tabs button.on{color:var(--accent)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
 
 <div class="wrap">
-  <header class="top">
-    <div>
-      <span class="eyebrow" id="eyebrow">Séance du jour</span>
-      <h1 id="title">Prêt</h1>
-      <p class="sub" id="subtitle">Tout reste sur cet appareil.</p>
-    </div>
-    <svg class="wheel" id="wheel" viewBox="0 0 100 100" aria-hidden="true"></svg>
-  </header>
 
   <!-- ACCUEIL -->
-  <div id="v-home">
-    <section>
-      <span class="label">Type de séance</span>
-      <div class="chips" id="mode"></div>
-    </section>
-    <section>
-      <span class="label">Durée</span>
-      <div class="chips" id="dur"></div>
-    </section>
-    <section id="readyBox"></section>
-    <button class="btn" id="gen">Générer la séance</button>
+  <div id="v-home" class="view">
+    <div class="h">NOUVELLE SÉANCE</div>
+    <div class="tiles" id="mode"></div>
+    <div class="stepper" id="durStepper"></div>
+    <div id="readyBox"></div>
+    <div class="spacer"></div>
+    <button class="btn" id="gen">GÉNÉRER →</button>
   </div>
 
   <!-- SÉANCE -->
-  <div id="v-wod" class="hide">
-    <section id="wodList"></section>
-    <button class="btn" id="start">Lancer le chrono</button>
-    <button class="btn ghost wide" id="regen">Regénérer</button>
+  <div id="v-wod" class="view">
+    <div class="row">
+      <span class="h" id="seanceTitle" style="font-size:18px">SÉANCE</span>
+      <span class="meta" id="seanceMeta"></span>
+    </div>
+    <div class="list" id="wodList"></div>
+    <div>
+      <button class="btn" id="start">COMMENCER →</button>
+      <button class="btn ghost wide" id="regen">Regénérer</button>
+    </div>
   </div>
 
   <!-- CHRONO -->
-  <div id="v-run" class="hide">
-    <div class="timer">
-      <div class="phase" id="phase">Effort</div>
-      <div class="clock" id="clock">00:00</div>
-      <div class="now" id="now"></div>
-      <div class="dose" id="dose" style="color:var(--signal);font-weight:600"></div>
-      <p class="cue sub" id="cue" style="margin-top:8px"></p>
-      <div class="next" id="next"></div>
+  <div id="v-run" class="view">
+    <div class="runtop">
+      <span class="runmeta" id="runMeta"></span>
+      <span class="pill effort" id="phasePill">EFFORT</span>
     </div>
-    <div class="row2">
-      <button class="btn ghost" id="pause">Pause</button>
-      <button class="btn" id="doneSet">Série faite</button>
+    <div class="runcenter">
+      <span class="exname" id="now"></span>
+      <div class="clockbox"><span class="clock" id="clock">00:00</span></div>
+      <p class="rundose" id="rundose"></p>
     </div>
-    <button class="btn ghost wide" id="abort">Arrêter la séance</button>
+    <div class="nextbanner" id="next"></div>
+    <div class="ctrl">
+      <button class="side" id="abort">STOP</button>
+      <button class="pause" id="pause">⏸ PAUSE</button>
+      <button class="side" id="doneSet">SKIP</button>
+    </div>
   </div>
 
   <!-- BILAN -->
-  <div id="v-end" class="hide">
-    <section>
-      <span class="label">Effort ressenti</span>
-      <div id="rpeVal" style="font-size:34px;font-weight:800">7</div>
-      <input class="slider" type="range" min="4" max="10" value="7" id="rpe">
-      <p class="sub" id="rpeTxt"></p>
-    </section>
-    <section>
-      <span class="label">Une douleur pendant la séance ?</span>
+  <div id="v-end" class="view">
+    <div>
+      <div class="h">BILAN DE SÉANCE</div>
+      <div class="meta" id="bilanMeta" style="margin-top:4px"></div>
+    </div>
+    <div>
+      <div class="meta" style="color:var(--text);margin-bottom:10px">EFFORT RESSENTI (RPE)</div>
+      <div class="rpe-grid" id="rpeGrid"></div>
+      <p class="rpetxt" id="rpeTxt" style="margin-top:10px"></p>
+    </div>
+    <div>
+      <div class="meta" style="color:var(--text);margin-bottom:10px">DOULEUR</div>
       <div class="chips" id="painList"></div>
-    </section>
-    <button class="btn" id="save">Enregistrer</button>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" id="save">ENREGISTRER</button>
   </div>
 
   <!-- NIVEAUX -->
-  <div id="v-lvl" class="hide"><section id="lvlList"></section></div>
+  <div id="v-lvl" class="view">
+    <div class="h">NIVEAUX</div>
+    <div class="list" id="lvlList"></div>
+  </div>
 
   <!-- HISTORIQUE -->
-  <div id="v-hist" class="hide">
-    <section id="histList"></section>
+  <div id="v-hist" class="view">
+    <div>
+      <div class="h">HISTORIQUE</div>
+      <div class="meta" id="histMeta" style="margin-top:4px"></div>
+    </div>
+    <div class="list" id="histList"></div>
     <button class="btn ghost" id="export">Exporter mes données</button>
   </div>
+
 </div>
 
 <nav class="tabs">
@@ -359,8 +425,8 @@ const VO2_POOL=[
 ];
 
 const ALL_EQUIP=['kb','anneaux','barre','elastique','rien'];
-const DURS=[{v:20,l:'20 min'},{v:30,l:'30 min'},{v:45,l:'45 min'}];
-const MODES=[{id:'force',l:'Force'},{id:'vo2',l:'VO2max'}];
+const DURS=[{v:20,l:'20'},{v:30,l:'30'},{v:45,l:'45'}];
+const MODES=[{id:'force',l:'FORCE',sub:'Paliers'},{id:'vo2',l:'VO2MAX',sub:'Cardio'}];
 const VO2_WORK=40, VO2_REST=20;
 const VO2_ROUNDS={20:3,30:5,45:7};
 
@@ -369,32 +435,29 @@ const VO2_ROUNDS={20:3,30:5,45:7};
 // et ça garantit qu'aucun pattern (charnière, tirage...) ne soit exclu faute d'équipement.
 let S={equip:ALL_EQUIP,dur:30,mode:'force',levels:{},history:[]};
 PATTERNS.forEach(p=>S.levels[p.id]=1);   // index 0–3, départ palier 2
-let wod=null,run=null;
-
-/* ---------- roue signature ---------- */
-function wheel(states){
-  const el=document.getElementById('wheel'),R=41,C=2*Math.PI*R,seg=C/7-4;
-  el.innerHTML=PATTERNS.map((p,i)=>{
-    const cl=states?(states[p.id]||''):'';
-    return `<circle class="seg ${cl}" cx="50" cy="50" r="${R}"
-      stroke-dasharray="${seg} ${C-seg}" stroke-dashoffset="${-i*C/7}"
-      transform="rotate(-90 50 50)" stroke-linecap="butt"/>`;
-  }).join('');
-}
+let wod=null,run=null,selectedRPE=7,highlightIdx=-1;
 
 /* ---------- rendu accueil ---------- */
 function paintHome(){
   document.getElementById('mode').innerHTML=MODES.map(m=>
-    `<button class="chip" data-m="${m.id}" aria-pressed="${S.mode===m.id}">${m.l}</button>`).join('');
-  document.getElementById('dur').innerHTML=DURS.map(d=>
-    `<button class="chip" data-d="${d.v}" aria-pressed="${S.dur===d.v}">${d.l}</button>`).join('');
+    `<button class="tile ${S.mode===m.id?'on':''}" data-m="${m.id}">
+      <div class="nm">${m.l}</div><div class="sub">${m.sub}</div></button>`).join('');
+  const idx=DURS.findIndex(d=>d.v===S.dur);
+  document.getElementById('durStepper').innerHTML=
+    `<button class="step" id="durMinus" ${idx<=0?'disabled':''}>−</button>
+     <div class="stepval">${S.dur}<span class="unit"> min</span></div>
+     <button class="step" id="durPlus" ${idx>=DURS.length-1?'disabled':''}>+</button>`;
+  document.getElementById('durMinus').onclick=()=>stepDur(-1);
+  document.getElementById('durPlus').onclick=()=>stepDur(1);
   const ready=S.mode==='force'?readyToProgress():[];
   document.getElementById('readyBox').innerHTML=ready.length
     ? `<div class="card tip"><p><b>Prêt à monter d'un cran :</b> ${ready.join(', ')}. Deux séances propres à RPE ≤ 6 sans douleur. Passe au palier suivant dans l'onglet Niveaux.</p></div>`
     : (S.mode==='vo2' ? `<div class="card warn"><p><b>VO2max :</b> circuit intense, poids du corps + kettlebell. Adapte l'intensité si besoin — la forme prime sur la vitesse.</p></div>` : '');
-  wheel(null);
-  document.getElementById('title').textContent='Prêt';
-  document.getElementById('subtitle').textContent='Tout reste sur cet appareil.';
+}
+function stepDur(delta){
+  const idx=DURS.findIndex(d=>d.v===S.dur);
+  const next=Math.max(0,Math.min(DURS.length-1,idx+delta));
+  S.dur=DURS[next].v; save(); paintHome();
 }
 
 function readyToProgress(){
@@ -422,7 +485,7 @@ function shuffle(arr){
   for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
   return a;
 }
-function generate(){ S.mode==='vo2' ? generateVo2() : generateForce(); }
+function generate(){ highlightIdx=-1; S.mode==='vo2' ? generateVo2() : generateForce(); }
 function generateForce(){
   let ex=PATTERNS.map(p=>pick(p.id)).filter(Boolean);
   if(S.dur===20){ ex=ex.slice(0,5).concat(ex.slice(5)); ex.forEach(e=>e.reps=e.reps.replace(/^[34] ×/,'2 ×')); }
@@ -442,35 +505,27 @@ function pickVo2(exclude){
 }
 function paintWod(){ wod.mode==='vo2' ? paintWodVo2() : paintWodForce(); }
 function paintWodForce(){
-  const st={}; wod.ex.forEach(e=>{if(e.pat)st[e.pat]='on'}); wheel(st);
-  document.getElementById('eyebrow').textContent='Séance du jour';
-  document.getElementById('title').textContent=S.dur+' minutes';
-  document.getElementById('subtitle').textContent='Garde 2 répétitions en réserve à chaque série.';
+  document.getElementById('seanceTitle').textContent='SÉANCE FORCE';
+  document.getElementById('seanceMeta').textContent=S.dur+' MIN';
   document.getElementById('wodList').innerHTML=
-    `<div class="ex"><div class="pat">Avant</div><div class="body">
-      <div class="nm">${WARM.n}</div><div class="dose">${WARM.reps}</div>
-      <div class="cue">${WARM.cue}</div></div></div>`+
-    wod.ex.map((e,i)=>`<div class="ex"><div class="pat">${e.pat?PATTERNS.find(p=>p.id===e.pat).short:'Accessoire'}</div>
-      <div class="body"><div class="nm">${e.n}${e.lvl?`<span class="lvl">P${e.lvl}</span>`:''}</div>
-      <div class="dose">${e.reps} · repos ${wod.rest}s</div>
-      <div class="cue">${e.cue}</div></div>
-      ${e.pat?`<button class="swap" data-swap="${i}" title="Changer d'exercice" aria-label="Changer d'exercice">⟳</button>`:''}</div>`).join('');
+    `<div class="ex"><div class="body">
+      <div class="nm">${WARM.n}</div><div class="dose">${WARM.reps} · ${WARM.cue}</div></div></div>`+
+    wod.ex.map((e,i)=>`<div class="ex ${i===highlightIdx?'hi':''}"><div class="body">
+      <div class="nm">${e.n}${e.lvl?`<span class="lvl">P${e.lvl}</span>`:''}</div>
+      <div class="dose">${e.reps} · ${e.cue}</div></div>
+      ${e.pat?`<button class="swap" data-swap="${i}" title="Changer d'exercice" aria-label="Changer d'exercice">⇄</button>`:''}</div>`).join('');
 }
 function paintWodVo2(){
-  const allOn={}; PATTERNS.forEach(p=>allOn[p.id]='on'); wheel(allOn);
   const c=wod.circuit;
-  document.getElementById('eyebrow').textContent='Circuit du jour';
-  document.getElementById('title').textContent=c.rounds+' tours';
-  document.getElementById('subtitle').textContent=`${c.work}s effort / ${c.rest}s repos par station. Le chrono mène la danse, tu suis.`;
+  document.getElementById('seanceTitle').textContent='SÉANCE VO2MAX';
+  document.getElementById('seanceMeta').textContent=c.rounds+' TOURS';
   document.getElementById('wodList').innerHTML=
-    `<div class="ex"><div class="pat">Avant</div><div class="body">
-      <div class="nm">${WARM.n}</div><div class="dose">${WARM.reps}</div>
-      <div class="cue">${WARM.cue}</div></div></div>`+
-    c.stations.map((e,i)=>`<div class="ex"><div class="pat">Station ${i+1}</div>
-      <div class="body"><div class="nm">${e.n}</div>
-      <div class="dose">${c.work}s effort · ${c.rest}s repos</div>
-      <div class="cue">${e.cue}</div></div>
-      <button class="swap" data-swap="${i}" title="Changer d'exercice" aria-label="Changer d'exercice">⟳</button></div>`).join('');
+    `<div class="ex"><div class="body">
+      <div class="nm">${WARM.n}</div><div class="dose">${WARM.reps} · ${WARM.cue}</div></div></div>`+
+    c.stations.map((e,i)=>`<div class="ex ${i===highlightIdx?'hi':''}"><div class="body">
+      <div class="nm">${e.n}</div>
+      <div class="dose">${c.work}s effort · ${c.rest}s repos · ${e.cue}</div></div>
+      <button class="swap" data-swap="${i}" title="Changer d'exercice" aria-label="Changer d'exercice">⇄</button></div>`).join('');
 }
 
 /* ---------- chrono ---------- */
@@ -478,6 +533,17 @@ let lock=null;
 async function keepAwake(on){
   try{ if(on&&'wakeLock'in navigator){lock=await navigator.wakeLock.request('screen')}
        else if(lock){lock.release();lock=null} }catch(e){}
+}
+
+/* ---------- teinte de phase (fond plein écran + meta theme-color) ---------- */
+function setPhase(phase){
+  const root=document.getElementById('v-run');
+  document.body.classList.toggle('phase-effort',phase==='effort');
+  document.body.classList.toggle('phase-rest',phase==='rest');
+  root.classList.toggle('phase-effort',phase==='effort');
+  root.classList.toggle('phase-rest',phase==='rest');
+  const meta=document.querySelector('meta[name=theme-color]');
+  if(meta) meta.setAttribute('content',phase==='effort'?'#180D0C':phase==='rest'?'#0A1917':'#0B0E11');
 }
 
 /* ---------- son + flash du décompte ---------- */
@@ -527,17 +593,17 @@ function flashClock(){
 function sets(reps){const m=reps.match(/^(\d+) ×/);return m?+m[1]:3}
 function startRun(){
   const btn=document.getElementById('doneSet');
-  document.getElementById('pause').textContent='Pause';
+  document.getElementById('pause').textContent='⏸ PAUSE';
   ensureAudio();
   if(wod.mode==='vo2'){
     run={mode:'vo2',round:1,station:0,phase:'work',t:wod.circuit.work,paused:false};
-    btn.textContent='Passer';
+    btn.textContent='SKIP';
     show('run');keepAwake(true);
     clearInterval(run.iv);run.iv=setInterval(tick,1000);paintVo2Run();
     return;
   }
   run={mode:'force',i:0,set:1,rest:false,t:0,paused:false,done:{}};
-  btn.textContent='Série faite';
+  btn.textContent='SKIP';
   show('run');keepAwake(true);
   clearInterval(run.iv);run.iv=setInterval(tick,1000);paintRun();
 }
@@ -565,26 +631,26 @@ function tick(){
 }
 function paintClock(){
   const t=Math.max(0,run.t),m=String(Math.floor(t/60)).padStart(2,'0'),s=String(t%60).padStart(2,'0');
-  const c=document.getElementById('clock');
-  c.textContent=m+':'+s; c.classList.toggle('rest',run.rest);
-  document.getElementById('phase').textContent=run.rest?'Repos':'Effort · série '+run.set;
+  document.getElementById('clock').textContent=m+':'+s;
+  document.getElementById('phasePill').className='pill '+(run.rest?'rest':'effort');
+  document.getElementById('phasePill').textContent=run.rest?'REPOS':'EFFORT';
+  setPhase(run.rest?'rest':'effort');
 }
 function paintRun(){
   const e=wod.ex[run.i];
+  document.getElementById('runMeta').textContent=`EXERCICE ${run.i+1}/${wod.ex.length}`;
   document.getElementById('now').textContent=e.n;
-  document.getElementById('dose').textContent=e.reps;
-  document.getElementById('cue').textContent=e.cue;
+  document.getElementById('rundose').textContent=`${e.reps} · ${e.cue}`;
   const nx=wod.ex[run.i+1];
-  document.getElementById('next').textContent=nx?'Ensuite · '+nx.n:'Dernier exercice';
-  const st={};wod.ex.forEach((x,i)=>{if(x.pat)st[x.pat]=i<run.i?'done':'on'});wheel(st);
+  document.getElementById('next').textContent=nx?'SUIVANT · '+nx.n:'Dernier exercice';
   paintClock();
 }
 function nextSet(){
   const e=wod.ex[run.i],total=sets(e.reps);
-  if(run.set<total){ run.set++; run.rest=true; run.t=wod.rest; }
+  if(run.set<total){ run.set++; run.rest=true; run.t=wod.rest; beep('rest');flashClock(); }
   else{
     if(e.pat)run.done[e.pat]=1;
-    if(run.i<wod.ex.length-1){ run.i++; run.set=1; run.rest=true; run.t=wod.rest; paintRun(); }
+    if(run.i<wod.ex.length-1){ run.i++; run.set=1; run.rest=true; run.t=wod.rest; beep('rest');flashClock();paintRun(); }
     else return endRun();
   }
   paintRun();
@@ -605,84 +671,92 @@ function vo2Advance(){
 function paintVo2Run(){
   const stations=wod.circuit.stations,st=stations[run.station];
   const t=Math.max(0,run.t),m=String(Math.floor(t/60)).padStart(2,'0'),s=String(t%60).padStart(2,'0');
-  const c=document.getElementById('clock');
-  c.textContent=m+':'+s; c.classList.toggle('rest',run.phase==='rest');
-  document.getElementById('phase').textContent=(run.phase==='work'?'Effort':'Repos')+' · tour '+run.round+'/'+wod.circuit.rounds;
+  document.getElementById('clock').textContent=m+':'+s;
+  document.getElementById('phasePill').className='pill '+(run.phase==='rest'?'rest':'effort');
+  document.getElementById('phasePill').textContent=run.phase==='rest'?'REPOS':'EFFORT';
+  setPhase(run.phase);
+  document.getElementById('runMeta').textContent=`TOUR ${run.round}/${wod.circuit.rounds} · STATION ${run.station+1}/${stations.length}`;
   document.getElementById('now').textContent=st.n;
-  document.getElementById('dose').textContent=`Station ${run.station+1}/${stations.length}`;
-  document.getElementById('cue').textContent=st.cue;
+  document.getElementById('rundose').textContent=st.cue;
   const isLast=run.station===stations.length-1&&run.round===wod.circuit.rounds;
   const nextSt=stations[(run.station+1)%stations.length];
   document.getElementById('next').textContent=run.phase==='work'
-    ? 'Ensuite · repos'
-    : (isLast?'Dernière ligne droite après ce repos':'Ensuite · '+nextSt.n);
+    ? 'SUIVANT · repos'
+    : (isLast?'Dernière ligne droite après ce repos':'PROCHAIN · '+nextSt.n);
 }
 function endRun(){
-  clearInterval(run.iv);keepAwake(false);beepEnd();
+  clearInterval(run.iv);keepAwake(false);beepEnd();setPhase(null);
   document.getElementById('painList').innerHTML=
     '<button class="chip" data-p="aucune" aria-pressed="true">Aucune</button>'+
     wod.ex.map((e,i)=>`<button class="chip" data-p="${i}" aria-pressed="false">${e.n}</button>`).join('');
-  document.getElementById('title').textContent='Bilan';
-  document.getElementById('eyebrow').textContent='Séance terminée';
-  document.getElementById('subtitle').textContent='Deux questions, et c’est fini.';
+  document.getElementById('bilanMeta').textContent=
+    `${wod.mode==='vo2'?'VO2max':'Force'} · ${S.dur} min · ${wod.ex.length} exercices complétés`;
+  paintRPE();
   show('end');
 }
-const RPETXT={4:"Très facile — tu peux monter le volume.",5:"Facile.",6:"Confortable, 4 reps en réserve.",
-7:"Bon niveau de travail, 2–3 reps en réserve.",8:"Difficile, 1–2 reps en réserve. C’est la limite haute.",
-9:"Trop dur pour du travail régulier — réduis.",10:"À l’échec. À éviter sur ces mouvements."};
+const RPETXT={1:"Aucun effort.",2:"Très très facile.",3:"Très facile.",4:"Facile — tu peux monter le volume.",
+5:"Confortable.",6:"Confortable, marge confortable.",7:"Bon niveau de travail, 2–3 reps en réserve.",
+8:"Difficile, 1–2 reps en réserve. C'est la limite haute.",9:"Trop dur pour du travail régulier — réduis.",
+10:"À l'échec. À éviter sur ces mouvements."};
+function paintRPE(){
+  document.getElementById('rpeGrid').innerHTML=Array.from({length:10},(_,i)=>i+1).map(n=>
+    `<button class="rpe-cell ${n===selectedRPE?'on':''}" data-rpe="${n}">${n}</button>`).join('');
+  document.getElementById('rpeTxt').textContent=RPETXT[selectedRPE]||'';
+}
 
 /* ---------- navigation ---------- */
 const VIEWS=['home','wod','run','end','lvl','hist'];
 function show(v){
-  VIEWS.forEach(x=>document.getElementById('v-'+x).classList.toggle('hide',x!==v));
+  VIEWS.forEach(x=>document.getElementById('v-'+x).classList.toggle('on',x===v));
+  const withNav=v!=='run'&&v!=='end';
+  document.body.classList.toggle('has-nav',withNav);
+  document.querySelector('nav.tabs').classList.toggle('hide',!withNav);
+  if(v!=='run') setPhase(null);
   document.querySelectorAll('nav.tabs button').forEach(b=>
     b.classList.toggle('on',b.dataset.v===v||(v==='wod'&&b.dataset.v==='home')));
   if(v==='lvl')paintLvl(); if(v==='hist')paintHist();
 }
 function paintLvl(){
-  document.getElementById('title').textContent='Niveaux';
-  document.getElementById('eyebrow').textContent='Progression';
-  document.getElementById('subtitle').textContent='Tu montes quand tu tiens le haut de la fourchette, deux séances de suite, sans douleur.';
-  wheel(null);
   document.getElementById('lvlList').innerHTML=PATTERNS.map(p=>{
     const cur=S.levels[p.id],variants=LIB[p.id][cur];
     const names=variants.map(v=>v.n).join(' · ');
-    return `<div class="ex"><div class="pat">${p.short}</div><div class="body">
-      <div class="nm">${names}</div>
-      <div class="chips" style="margin-top:8px">
-        <button class="chip" data-lv="${p.id}:-1" ${cur===0?'disabled':''}>−</button>
-        <button class="chip" aria-pressed="true">Palier ${cur+1} / 4</button>
-        <button class="chip" data-lv="${p.id}:1" ${cur===3?'disabled':''}>+</button>
-      </div></div></div>`;
+    return `<div class="card"><div class="row">
+        <span class="nm" style="color:var(--text);font-weight:800;font-size:14px">${p.short}</span>
+        <span style="display:flex;align-items:center;gap:8px">
+          <button class="step sm" data-lv="${p.id}:-1" ${cur===0?'disabled':''}>−</button>
+          <span style="color:var(--accent);font-weight:900;font-size:13px">PALIER ${cur+1}</span>
+          <button class="step sm" data-lv="${p.id}:1" ${cur===3?'disabled':''}>+</button>
+        </span>
+      </div>
+      <div class="lvlbar">${[0,1,2,3].map(i=>`<div class="lvlseg ${i<=cur?'on':''}"></div>`).join('')}</div>
+      <div class="lvlnames">${names}</div></div>`;
   }).join('');
 }
 function paintHist(){
-  document.getElementById('title').textContent='Historique';
-  document.getElementById('eyebrow').textContent=S.history.length+' séances';
-  document.getElementById('subtitle').textContent='Rien n’est envoyé nulle part.';
-  wheel(null);
+  document.getElementById('histMeta').textContent=S.history.length+' séances · rien n’est envoyé nulle part';
   const l=document.getElementById('histList');
   l.innerHTML=S.history.length?S.history.slice().reverse().map(h=>
-    `<div class="hist"><span>${new Date(h.d).toLocaleDateString('fr-CH',{day:'2-digit',month:'short'})}
-       <span class="lvl">${h.mode==='vo2'?'VO2max':'Force'}</span></span>
-     <span style="color:var(--bone)">${h.dur} min · RPE ${h.rpe}</span>
-     <span style="color:${h.pain&&h.pain.length?'var(--alert)':'var(--bone-dim)'}">${h.pain&&h.pain.length?'douleur':'—'}</span></div>`).join('')
+    `<div class="hist">
+       <span class="badge ${h.mode==='vo2'?'vo2':'force'}">${h.mode==='vo2'?'VO2MAX':'FORCE'}</span>
+       <div class="body">
+         <div class="d">${new Date(h.d).toLocaleDateString('fr-CH',{day:'2-digit',month:'short'})}</div>
+         <div class="m" style="${h.pain&&h.pain.length?'color:var(--alert)':''}">${h.dur} min · RPE ${h.rpe}${h.pain&&h.pain.length?' · douleur':''}</div>
+       </div>
+     </div>`).join('')
    :'<div class="card"><p>Aucune séance enregistrée. Lance-en une, elle apparaîtra ici.</p></div>';
 }
 
 /* ---------- événements ---------- */
 document.getElementById('mode').onclick=e=>{const b=e.target.closest('[data-m]');if(!b)return;
   S.mode=b.dataset.m;save();paintHome()};
-document.getElementById('dur').onclick=e=>{const b=e.target.closest('[data-d]');if(!b)return;
-  S.dur=+b.dataset.d;save();paintHome()};
 document.getElementById('gen').onclick=()=>{generate();show('wod')};
-document.getElementById('regen').onclick=generate;
+document.getElementById('regen').onclick=()=>{generate()};
 document.getElementById('wodList').onclick=e=>{const b=e.target.closest('[data-swap]');if(!b)return;
   const i=+b.dataset.swap;
   if(wod.mode==='vo2'){ const next=pickVo2(wod.circuit.stations[i].n);
-    if(next){wod.circuit.stations[i]=next;paintWod();} return; }
+    if(next){wod.circuit.stations[i]=next;highlightIdx=i;paintWod();} return; }
   const cur=wod.ex[i],next=pick(cur.pat,cur.n);
-  if(next){wod.ex[i]=next;paintWod();}};
+  if(next){wod.ex[i]=next;highlightIdx=i;paintWod();}};
 document.getElementById('start').onclick=startRun;
 document.getElementById('doneSet').onclick=()=>{
   if(run.mode==='vo2'){
@@ -694,10 +768,12 @@ document.getElementById('doneSet').onclick=()=>{
   nextSet();
 };
 document.getElementById('pause').onclick=e=>{run.paused=!run.paused;
-  e.target.textContent=run.paused?'Reprendre':'Pause'};
-document.getElementById('abort').onclick=()=>{clearInterval(run.iv);keepAwake(false);show('home');paintHome()};
-document.getElementById('rpe').oninput=e=>{document.getElementById('rpeVal').textContent=e.target.value;
-  document.getElementById('rpeTxt').textContent=RPETXT[e.target.value]};
+  e.target.textContent=run.paused?'▶ REPRENDRE':'⏸ PAUSE'};
+document.getElementById('abort').onclick=()=>{
+  if(!confirm('Arrêter la séance en cours ?'))return;
+  clearInterval(run.iv);keepAwake(false);setPhase(null);show('home');paintHome()};
+document.getElementById('rpeGrid').onclick=e=>{const b=e.target.closest('[data-rpe]');if(!b)return;
+  selectedRPE=+b.dataset.rpe;paintRPE()};
 document.getElementById('painList').onclick=e=>{const b=e.target.closest('[data-p]');if(!b)return;
   const none=b.dataset.p==='aucune';
   if(none)document.querySelectorAll('#painList .chip').forEach(c=>
@@ -707,7 +783,7 @@ document.getElementById('painList').onclick=e=>{const b=e.target.closest('[data-
 document.getElementById('save').onclick=()=>{
   const pain=[...document.querySelectorAll('#painList .chip[aria-pressed="true"]')]
     .filter(c=>c.dataset.p!=='aucune').map(c=>wod.ex[+c.dataset.p].n);
-  S.history.push({d:Date.now(),dur:S.dur,mode:wod.mode,rpe:+document.getElementById('rpe').value,
+  S.history.push({d:Date.now(),dur:S.dur,mode:wod.mode,rpe:selectedRPE,
     pain,pats:wod.ex.filter(e=>e.pat).map(e=>e.pat)});
   pain.forEach(nm=>{const e=wod.ex.find(x=>x.n===nm);
     if(e&&e.pat&&S.levels[e.pat]>0)S.levels[e.pat]--;});
@@ -723,7 +799,7 @@ document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>{
   const v=b.dataset.v;if(v==='home'){paintHome();show('home')}else show(v)});
 
 function save(){store.set('wodapp',S)}
-(()=>{const s=store.get('wodapp');if(s)S={...S,...s};S.equip=ALL_EQUIP;paintHome()})();
+(()=>{const s=store.get('wodapp');if(s)S={...S,...s};S.equip=ALL_EQUIP;paintHome();show('home')})();
 
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js'));
