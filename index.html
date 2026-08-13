@@ -262,12 +262,50 @@ nav.tabs button.on{color:var(--accent)}
     <button class="btn ghost" id="export">Exporter mes données</button>
   </div>
 
+  <!-- AIDE -->
+  <div id="v-help" class="view">
+    <div>
+      <div class="h">AIDE</div>
+      <div class="meta" style="margin-top:4px">Comment bien utiliser l'app</div>
+    </div>
+    <div class="list">
+      <div class="card">
+        <p><b>L'idée générale.</b> Tout reste sur ton téléphone, rien n'est envoyé nulle part. Deux types de séance : <b>Force</b> (renfo par paliers de progression) et <b>VO2max</b> (circuit cardio intense). Choisis un mode et une durée sur l'accueil, puis tape "Générer".</p>
+      </div>
+      <div class="card">
+        <p><b>La liste d'exercices.</b> Avant de commencer, tu peux échanger un exercice contre une variante du même mouvement avec le bouton ⇄. "Regénérer" retire toute la séance et en propose une nouvelle.</p>
+      </div>
+      <div class="card">
+        <p><b>Le déroulé du chrono.</b> 20 secondes de préparation (pose le téléphone, mets-toi en place) → 5 minutes d'échauffement chronométré → puis les exercices. Tu peux passer une étape en avance avec SKIP. Pendant le repos, le décompte bipe de plus en plus fort dans les 5 dernières secondes pour te prévenir sans regarder l'écran.</p>
+      </div>
+      <div class="card">
+        <p><b>Logger tes séries.</b> Pendant l'effort d'un exercice au kettlebell, un petit réglage poids + reps apparaît sous le chrono, déjà pré-rempli au plan prévu. Si tu suis le programme tel quel, tu n'as rien à toucher — ajuste seulement si tu as fait plus lourd ou plus/moins de reps. Ça sert à suivre ta vraie progression, pas juste ce qui était prévu.</p>
+      </div>
+      <div class="card">
+        <p><b>Paliers (onglet Niveaux).</b> Chaque mouvement a 4 paliers de difficulté. Deux séances propres de suite (RPE ≤ 6, sans douleur) sur un pattern → l'accueil te propose de monter d'un cran, à valider toi-même dans Niveaux avec les boutons − / +. À l'inverse, si tu signales une douleur sur un exercice au bilan, son palier redescend automatiquement.</p>
+      </div>
+      <div class="card">
+        <p><b>Effort ressenti (RPE).</b> À la fin de chaque séance, une note de 1 (aucun effort) à 10 (à l'échec). Vise 7-8 pour une séance de travail normale — c'est aussi ce qui alimente les signaux de progression et de fatigue.</p>
+      </div>
+      <div class="card">
+        <p><b>Les signaux automatiques.</b> Un badge <b>💪 charge+</b> apparaît sur un exercice quand tu as atteint le haut de la fourchette de reps à la même charge deux fois de suite — c'est le moment de monter en poids. À l'inverse, si un pattern a été très dur (RPE ≥ 8) deux séances de suite, l'accueil te propose de lever le pied plutôt que d'insister.</p>
+      </div>
+      <div class="card">
+        <p><b>VO2max.</b> Un circuit de 5 exercices au poids du corps et au kettlebell, tirés au sort, enchaînés en alternant effort et repos chronométrés sur plusieurs tours. Le chrono avance tout seul, tu suis.</p>
+      </div>
+      <div class="card">
+        <p><b>Historique et export.</b> Chaque séance enregistrée apparaît dans l'onglet Historique. Le bouton "Exporter mes données" télécharge tout (séances, poids, niveaux) dans un fichier — utile comme sauvegarde avant de changer de téléphone.</p>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <nav class="tabs">
   <button data-v="home" class="on">Séance</button>
   <button data-v="lvl">Niveaux</button>
   <button data-v="hist">Historique</button>
+  <button data-v="help">Aide</button>
 </nav>
 
 <script>
@@ -868,7 +906,7 @@ function paintRPE(){
 }
 
 /* ---------- navigation ---------- */
-const VIEWS=['home','wod','run','end','lvl','hist'];
+const VIEWS=['home','wod','run','end','lvl','hist','help'];
 function show(v){
   VIEWS.forEach(x=>document.getElementById('v-'+x).classList.toggle('on',x===v));
   const withNav=v!=='run'&&v!=='end';
