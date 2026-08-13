@@ -555,13 +555,29 @@ function setPhase(phase){
 
 /* ---------- son + flash du décompte ---------- */
 let audioCtx=null;
+function unlockAudio(ctx){
+  // iOS (surtout en PWA plein écran) exige de "débloquer" le contexte en jouant
+  // un buffer silencieux pendant le geste utilisateur, sinon les sons suivants
+  // peuvent rester muets même si le contexte se dit "running".
+  try{
+    const buf=ctx.createBuffer(1,1,22050);
+    const src=ctx.createBufferSource();
+    src.buffer=buf; src.connect(ctx.destination); src.start(0);
+  }catch(e){}
+}
 function ensureAudio(){
   try{
-    if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-    if(audioCtx.state==='suspended') audioCtx.resume();
+    if(!audioCtx){
+      audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+      unlockAudio(audioCtx);
+    }
+    if(audioCtx.state==='suspended'){ audioCtx.resume(); unlockAudio(audioCtx); }
   }catch(e){}
   return audioCtx;
 }
+// Filet de sécurité : débloque l'audio dès la toute première interaction sur la page,
+// pas seulement au clic sur "Commencer" (utile pour certains iPhone en mode PWA).
+['touchstart','click'].forEach(evt=>document.addEventListener(evt,()=>ensureAudio(),{once:true,passive:true}));
 function tone(freq,gain,dur){
   const ctx=ensureAudio(); if(!ctx) return;
   try{
