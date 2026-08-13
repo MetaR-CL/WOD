@@ -70,6 +70,11 @@ body.has-nav .wrap{padding-bottom:calc(env(safe-area-inset-bottom) + 100px)}
 .step.sm{width:26px;height:26px;font-size:14px}
 .stepval{color:var(--text);font-size:40px;font-weight:900;font-variant-numeric:tabular-nums}
 .stepval .unit{font-size:16px;color:var(--text-dim);font-weight:700}
+.stepval.sm{font-size:18px}
+
+/* --- log de série (poids / reps réels) pendant le chrono --- */
+.setlog{display:flex;gap:22px;justify-content:center;align-items:center;margin-top:2px}
+.setlog .stepper{gap:10px;padding:0}
 
 .btn{width:100%;padding:18px;border:none;border-radius:var(--r);background:var(--accent);
   color:var(--on-accent);font:inherit;font-size:15px;font-weight:900;letter-spacing:.04em;cursor:pointer}
@@ -212,6 +217,7 @@ nav.tabs button.on{color:var(--accent)}
       <span class="exname" id="now"></span>
       <div class="clockbox"><span class="clock" id="clock">00:00</span></div>
       <p class="rundose" id="rundose"></p>
+      <div class="setlog hide" id="setlog"></div>
     </div>
     <div class="nextbanner" id="next"></div>
     <div class="ctrl">
@@ -436,11 +442,12 @@ const MODES=[{id:'force',l:'FORCE',sub:'Paliers'},{id:'vo2',l:'VO2MAX',sub:'Card
 const VO2_WORK=40, VO2_REST=20;
 const VO2_ROUNDS={20:3,30:5,45:7};
 const PREP_SECONDS=20, WARMUP_SECONDS=300;
+const DEFAULT_WEIGHT=16; // kg, point de départ neutre pour un exercice jamais loggé
 
 /* ---------- état ---------- */
 // Tout le matériel est toujours considéré comme disponible : plus de sélection à faire,
 // et ça garantit qu'aucun pattern (charnière, tirage...) ne soit exclu faute d'équipement.
-let S={equip:ALL_EQUIP,dur:30,mode:'force',levels:{},history:[]};
+let S={equip:ALL_EQUIP,dur:30,mode:'force',levels:{},history:[],weights:{}};
 PATTERNS.forEach(p=>S.levels[p.id]=1);   // index 0–3, départ palier 2
 let wod=null,run=null,selectedRPE=7,highlightIdx=-1;
 
@@ -456,8 +463,11 @@ function paintHome(){
      <button class="step" id="durPlus" ${idx>=DURS.length-1?'disabled':''}>+</button>`;
   document.getElementById('durMinus').onclick=()=>stepDur(-1);
   document.getElementById('durPlus').onclick=()=>stepDur(1);
+  const deload=S.mode==='force'?needsDeload():[];
   const ready=S.mode==='force'?readyToProgress():[];
-  document.getElementById('readyBox').innerHTML=ready.length
+  document.getElementById('readyBox').innerHTML=deload.length
+    ? `<div class="card warn"><p><b>Fatigue qui s'accumule :</b> ${deload.join(', ')} — RPE ≥ 8 deux séances de suite. Une séance plus légère aujourd'hui vaut mieux qu'une blessure.</p></div>`
+    : ready.length
     ? `<div class="card tip"><p><b>Prêt à monter d'un cran :</b> ${ready.join(', ')}. Deux séances propres à RPE ≤ 6 sans douleur. Passe au palier suivant dans l'onglet Niveaux.</p></div>`
     : (S.mode==='vo2' ? `<div class="card warn"><p><b>VO2max :</b> circuit intense, poids du corps + kettlebell. Adapte l'intensité si besoin — la forme prime sur la vitesse.</p></div>` : '');
 }
@@ -474,6 +484,56 @@ function readyToProgress(){
   if(!ok)return[];
   const common=h[0].pats.filter(p=>h[1].pats.includes(p));
   return common.map(id=>PATTERNS.find(p=>p.id===id).short);
+}
+// Fatigue qui s'accumule : les 2 dernières séances Force ayant travaillé ce pattern
+// étaient toutes les deux très dures (RPE ≥ 8). Signal de sécurité, indépendant des
+// paliers manuels — l'idée est de freiner avant la blessure, pas seulement après.
+function needsDeload(){
+  const flagged=[];
+  PATTERNS.forEach(p=>{
+    const sessions=S.history.filter(h=>h.mode==='force'&&h.pats.includes(p.id)).slice(-2);
+    if(sessions.length<2) return;
+    if(sessions.every(s=>s.rpe>=8)) flagged.push(p.short);
+  });
+  return flagged;
+}
+// Nombre de séries loguées sur ce pattern durant les 7 derniers jours (tout mode confondu
+// pour les séances qui ont des séries loguées, donc Force pour l'instant).
+function weeklySets(patId){
+  const weekAgo=Date.now()-7*24*60*60*1000;
+  let n=0;
+  S.history.forEach(h=>{ if(h.d>=weekAgo&&h.sets) h.sets.forEach(s=>{ if(s.pat===patId) n++; }); });
+  return n;
+}
+// Cible de reps par série à partir d'un texte "3 × 10" / "3 × 8 / jambe" (null si c'est
+// un temps tenu, ex. "3 × 30 s / côté" — pas de compte de reps là-dedans).
+function repsTarget(reps){
+  if(/\ds\b/.test(reps)) return null;
+  const m=reps.match(/× (\d+)/);
+  return m?+m[1]:null;
+}
+// Les 2 dernières séances où cet exercice précis a été loggé (plus récente d'abord),
+// chacune sous forme du tableau de ses séries loguées ce jour-là.
+function lastLogsFor(name,n){
+  const out=[];
+  for(let i=S.history.length-1;i>=0&&out.length<n;i--){
+    const h=S.history[i];
+    if(!h.sets) continue;
+    const matches=h.sets.filter(s=>s.name===name);
+    if(matches.length) out.push(matches);
+  }
+  return out;
+}
+// Double progression : si les 2 dernières fois, chaque série a atteint le haut de la
+// fourchette de reps à la même charge, c'est le signal classique pour monter en poids.
+function readyToLoadUp(name,target){
+  if(!target) return false;
+  const recent=lastLogsFor(name,2);
+  if(recent.length<2) return false;
+  return recent.every(sessionSets=>{
+    const w=sessionSets[0].weight;
+    return w!=null&&sessionSets.every(s=>s.weight===w&&s.reps>=target);
+  });
 }
 
 /* ---------- génération ---------- */
@@ -517,10 +577,13 @@ function paintWodForce(){
   document.getElementById('wodList').innerHTML=
     `<div class="ex"><div class="body">
       <div class="nm">${WARM.n}</div><div class="dose">${WARM.reps} · ${WARM.cue}</div></div></div>`+
-    wod.ex.map((e,i)=>`<div class="ex ${i===highlightIdx?'hi':''}"><div class="body">
-      <div class="nm">${e.n}${e.lvl?`<span class="lvl">P${e.lvl}</span>`:''}</div>
+    wod.ex.map((e,i)=>{
+      const loadUp=e.eq&&e.eq.includes('kb')&&readyToLoadUp(e.n,repsTarget(e.reps));
+      return `<div class="ex ${i===highlightIdx?'hi':''}"><div class="body">
+      <div class="nm">${e.n}${e.lvl?`<span class="lvl">P${e.lvl}</span>`:''}${loadUp?`<span class="lvl" style="color:var(--accent);border-color:var(--accent)">💪 charge+</span>`:''}</div>
       <div class="dose">${e.reps} · ${e.cue}</div></div>
-      ${e.pat?`<button class="swap" data-swap="${i}" title="Changer d'exercice" aria-label="Changer d'exercice">⇄</button>`:''}</div>`).join('');
+      ${e.pat?`<button class="swap" data-swap="${i}" title="Changer d'exercice" aria-label="Changer d'exercice">⇄</button>`:''}</div>`;
+    }).join('');
 }
 function paintWodVo2(){
   const c=wod.circuit;
@@ -650,7 +713,7 @@ function enterMain(){
     run.stage='circuit'; run.round=1; run.station=0; run.phase='work'; run.t=wod.circuit.work;
     paintVo2Run();
   }else{
-    run.stage='main'; run.i=0; run.set=1; run.rest=false; run.t=0; run.done={};
+    run.stage='main'; run.i=0; run.set=1; run.rest=false; run.t=0; run.done={}; run.log=[];
     paintRun();
   }
 }
@@ -660,6 +723,8 @@ function advanceStage(){
   else enterMain();
 }
 function paintStage(){
+  document.getElementById('setlog').innerHTML='';
+  document.getElementById('setlog').classList.add('hide');
   const t=Math.max(0,run.t),m=String(Math.floor(t/60)).padStart(2,'0'),s=String(t%60).padStart(2,'0');
   document.getElementById('clock').textContent=m+':'+s;
   document.getElementById('phasePill').className='pill neutral';
@@ -715,10 +780,35 @@ function paintRun(){
   document.getElementById('rundose').textContent=`${e.reps} · ${e.cue}`;
   const nx=wod.ex[run.i+1];
   document.getElementById('next').textContent=nx?'SUIVANT · '+nx.n:'Dernier exercice';
+  if(run.set===1) run.curWeight=S.weights[e.n]||DEFAULT_WEIGHT;
+  run.curReps=repsTarget(e.reps);
+  paintSetLog(e);
   paintClock();
+}
+// Log de série : poids (si KB) et reps réelles, pré-remplis au plan pour rester
+// utilisable sans rien taper, mais ajustables avant de valider avec SKIP.
+function paintSetLog(e){
+  const box=document.getElementById('setlog');
+  const showWeight=e.eq&&e.eq.includes('kb');
+  const showReps=run.curReps!==null;
+  if(!showWeight&&!showReps){ box.innerHTML=''; box.classList.add('hide'); return; }
+  box.classList.remove('hide');
+  box.innerHTML=
+    (showWeight?`<div class="stepper"><button class="step sm" data-log="wt:-1">−</button>
+      <span class="stepval sm">${run.curWeight}<span class="unit">kg</span></span>
+      <button class="step sm" data-log="wt:1">+</button></div>`:'')+
+    (showReps?`<div class="stepper"><button class="step sm" data-log="rp:-1">−</button>
+      <span class="stepval sm">${run.curReps}<span class="unit">reps</span></span>
+      <button class="step sm" data-log="rp:1">+</button></div>`:'');
+}
+function logSet(e){
+  const entry={pat:e.pat||null,name:e.n,weight:(e.eq&&e.eq.includes('kb'))?run.curWeight:null,reps:run.curReps};
+  run.log.push(entry);
+  if(entry.weight!=null) S.weights[e.n]=entry.weight;
 }
 function nextSet(){
   const e=wod.ex[run.i],total=sets(e.reps);
+  logSet(e);
   if(run.set<total){ run.set++; run.rest=true; run.t=wod.rest; beep('rest');flashClock(); }
   else{
     if(e.pat)run.done[e.pat]=1;
@@ -762,7 +852,8 @@ function endRun(){
     '<button class="chip" data-p="aucune" aria-pressed="true">Aucune</button>'+
     wod.ex.map((e,i)=>`<button class="chip" data-p="${i}" aria-pressed="false">${e.n}</button>`).join('');
   document.getElementById('bilanMeta').textContent=
-    `${wod.mode==='vo2'?'VO2max':'Force'} · ${S.dur} min · ${wod.ex.length} exercices complétés`;
+    `${wod.mode==='vo2'?'VO2max':'Force'} · ${S.dur} min · ${wod.ex.length} exercices complétés`+
+    (run.log&&run.log.length?` · ${run.log.length} séries loguées`:'');
   paintRPE();
   show('end');
 }
@@ -801,7 +892,8 @@ function paintLvl(){
         </span>
       </div>
       <div class="lvlbar">${[0,1,2,3].map(i=>`<div class="lvlseg ${i<=cur?'on':''}"></div>`).join('')}</div>
-      <div class="lvlnames">${names}</div></div>`;
+      <div class="lvlnames">${names}</div>
+      <div class="lvlnames" style="margin-top:2px">${weeklySets(p.id)} série${weeklySets(p.id)===1?'':'s'} cette semaine</div></div>`;
   }).join('');
 }
 function paintHist(){
@@ -812,7 +904,7 @@ function paintHist(){
        <span class="badge ${h.mode==='vo2'?'vo2':'force'}">${h.mode==='vo2'?'VO2MAX':'FORCE'}</span>
        <div class="body">
          <div class="d">${new Date(h.d).toLocaleDateString('fr-CH',{day:'2-digit',month:'short'})}</div>
-         <div class="m" style="${h.pain&&h.pain.length?'color:var(--alert)':''}">${h.dur} min · RPE ${h.rpe}${h.pain&&h.pain.length?' · douleur':''}</div>
+         <div class="m" style="${h.pain&&h.pain.length?'color:var(--alert)':''}">${h.dur} min · RPE ${h.rpe}${h.sets&&h.sets.length?' · '+h.sets.length+' séries':''}${h.pain&&h.pain.length?' · douleur':''}</div>
        </div>
      </div>`).join('')
    :'<div class="card"><p>Aucune séance enregistrée. Lance-en une, elle apparaîtra ici.</p></div>';
@@ -829,6 +921,13 @@ document.getElementById('wodList').onclick=e=>{const b=e.target.closest('[data-s
     if(next){wod.circuit.stations[i]=next;highlightIdx=i;paintWod();} return; }
   const cur=wod.ex[i],next=pick(cur.pat,cur.n);
   if(next){wod.ex[i]=next;highlightIdx=i;paintWod();}};
+document.getElementById('setlog').onclick=e=>{
+  const b=e.target.closest('[data-log]');if(!b)return;
+  const[kind,delta]=b.dataset.log.split(':');
+  if(kind==='wt') run.curWeight=Math.max(0,run.curWeight+(+delta*2));
+  else run.curReps=Math.max(0,run.curReps+ +delta);
+  paintSetLog(wod.ex[run.i]);
+};
 document.getElementById('start').onclick=startRun;
 document.getElementById('doneSet').onclick=()=>{
   if(run.stage==='prep'||run.stage==='warmup'){ advanceStage(); return; }
@@ -857,7 +956,7 @@ document.getElementById('save').onclick=()=>{
   const pain=[...document.querySelectorAll('#painList .chip[aria-pressed="true"]')]
     .filter(c=>c.dataset.p!=='aucune').map(c=>wod.ex[+c.dataset.p].n);
   S.history.push({d:Date.now(),dur:S.dur,mode:wod.mode,rpe:selectedRPE,
-    pain,pats:wod.ex.filter(e=>e.pat).map(e=>e.pat)});
+    pain,pats:wod.ex.filter(e=>e.pat).map(e=>e.pat),sets:(run&&run.log)||[]});
   pain.forEach(nm=>{const e=wod.ex.find(x=>x.n===nm);
     if(e&&e.pat&&S.levels[e.pat]>0)S.levels[e.pat]--;});
   save();show('home');paintHome();
