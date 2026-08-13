@@ -291,7 +291,7 @@ nav.tabs button.on{color:var(--accent)}
         <p><b>Les signaux automatiques.</b> Un badge <b>💪 charge+</b> apparaît sur un exercice quand tu as atteint le haut de la fourchette de reps à la même charge deux fois de suite — c'est le moment de monter en poids. À l'inverse, si un pattern a été très dur (RPE ≥ 8) deux séances de suite, l'accueil te propose de lever le pied plutôt que d'insister.</p>
       </div>
       <div class="card">
-        <p><b>VO2max.</b> Un circuit de 5 exercices au poids du corps et au kettlebell, tirés au sort, enchaînés en alternant effort et repos chronométrés sur plusieurs tours. Le chrono avance tout seul, tu suis.</p>
+        <p><b>VO2max.</b> Un circuit de 5 exercices cardio-intenses au poids du corps et au kettlebell, tirés au sort, enchaînés en alternant effort et repos chronométrés sur plusieurs tours. Le chrono avance tout seul, tu suis. Pousse vraiment fort sur chaque bloc d'effort (~90% de ta fréquence cardiaque max) — c'est cette intensité proche du maximum qui fait progresser le VO2max, pas un rythme confortable.</p>
       </div>
       <div class="card">
         <p><b>Historique et export.</b> Chaque séance enregistrée apparaît dans l'onglet Historique. Le bouton "Exporter mes données" télécharge tout (séances, poids, niveaux) dans un fichier — utile comme sauvegarde avant de changer de téléphone.</p>
@@ -459,19 +459,19 @@ const ACCESS={n:"Dips",eq:['anneaux','barre'],reps:"2 × 8",cue:"En accessoire, 
 const WARM={n:"Échauffement",reps:"5 min",cue:"Cercles d'épaules, cat-cow, fentes avec rotation, 20 swings légers. Ne saute pas cette étape."};
 
 /* ---------- circuit VO2max : poids du corps + kettlebell uniquement ---------- */
+// Uniquement des mouvements à forte demande cardio (pas de blocs "gainage/force" du
+// style renegade row) : l'objectif VO2max, c'est une intensité proche du maximum sur
+// chaque station, pas un mélange d'intensités qui dilue l'effet.
 const VO2_POOL=[
  {n:"Swing kettlebell 2 mains",cue:"Explosif, la hanche claque. Le KB ne monte jamais plus haut que les yeux si tu perds le contrôle."},
- {n:"Burpees",cue:"Poitrine au sol, saut vertical en sortie. Vise un rythme soutenable sur toute la durée, pas un sprint sur les 10 premières secondes."},
+ {n:"Burpees",cue:"Poitrine au sol, saut vertical en sortie. Effort maximal soutenu — pas un sprint qui s'effondre après 10 secondes."},
  {n:"Squat jump",cue:"Réception souple, genoux dans l'axe des orteils. Enchaîne sans t'arrêter en bas."},
  {n:"Mountain climbers",cue:"Bassin bas et stable, les genoux viennent sous la poitrine. Rythme rapide, gainage constant."},
  {n:"Clean & press kettlebell, alterné",cue:"Un bras à la fois : clean puis press. Change de bras à la mi-temps de la station."},
  {n:"Fentes sautées",cue:"Alterne les jambes en l'air. Réception souple, le genou avant ne dépasse pas les orteils."},
  {n:"Snatch kettlebell, alterné",cue:"Change de bras environ toutes les 30 secondes. Technique avant vitesse — ralentis si la forme se dégrade."},
- {n:"Jumping jacks",cue:"Amplitude complète bras et jambes. Bloc plus léger du circuit : garde quand même le rythme."},
  {n:"Thruster kettlebell",cue:"Le squat propulse le KB vers le haut en un seul mouvement continu. Très cardio."},
- {n:"Montées de genoux",cue:"Rythme rapide, genoux à hauteur de hanche. Les bras pompent comme à la course."},
- {n:"Renegade row",cue:"Pieds larges, un KB dans chaque main. Le bassin ne tourne pas quand tu tires."},
- {n:"Plank jack",cue:"En planche, les pieds sautent écartés-resserrés. Le bassin ne bouge pas pendant le saut."}
+ {n:"Montées de genoux",cue:"Rythme rapide, genoux à hauteur de hanche. Les bras pompent comme à la course."}
 ];
 
 const ALL_EQUIP=['kb','anneaux','barre','elastique','rien'];
@@ -877,7 +877,8 @@ function paintVo2Run(){
   setPhase(run.phase);
   document.getElementById('runMeta').textContent=`TOUR ${run.round}/${wod.circuit.rounds} · STATION ${run.station+1}/${stations.length}`;
   document.getElementById('now').textContent=st.n;
-  document.getElementById('rundose').textContent=st.cue;
+  document.getElementById('rundose').textContent=run.phase==='work'
+    ? `À fond, vise ~90% de ta FC max · ${st.cue}` : st.cue;
   const isLast=run.station===stations.length-1&&run.round===wod.circuit.rounds;
   const nextSt=stations[(run.station+1)%stations.length];
   document.getElementById('next').textContent=run.phase==='work'
