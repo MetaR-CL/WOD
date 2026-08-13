@@ -560,16 +560,19 @@ function setPhase(phase){
    vraies balises <audio>, qui passent par le pipeline média fiable sur iOS. */
 const SAMPLE_RATE=22050;
 function synthSamples(segments){
-  // segments: [{freq,gain,dur}], concaténés avec une attaque/chute exponentielle
+  // segments: [{freq,gain,dur,over}], concaténés. "over" ajoute un soupçon
+  // d'octave supérieure (façon carillon) pour adoucir le timbre d'un sinus pur.
+  // Attaque adoucie (ease-in) + chute plus longue pour un son "ding", pas "bip".
   let total=0; segments.forEach(s=>total+=Math.floor(SAMPLE_RATE*s.dur));
   const data=new Int16Array(total);
   let offset=0;
-  segments.forEach(({freq,gain,dur})=>{
+  segments.forEach(({freq,gain,dur,over})=>{
     const n=Math.floor(SAMPLE_RATE*dur);
-    const attack=Math.max(1,Math.floor(SAMPLE_RATE*0.008));
+    const attack=Math.max(1,Math.floor(SAMPLE_RATE*0.018));
     for(let i=0;i<n;i++){
-      const env=i<attack ? i/attack : Math.exp(-5*(i-attack)/Math.max(1,n-attack));
-      const s=Math.sin(2*Math.PI*freq*i/SAMPLE_RATE)*gain*env;
+      const env=i<attack ? Math.sin((i/attack)*Math.PI/2) : Math.exp(-4*(i-attack)/Math.max(1,n-attack));
+      let s=freq ? Math.sin(2*Math.PI*freq*i/SAMPLE_RATE)*gain*env : 0;
+      if(freq&&over) s+=Math.sin(2*Math.PI*freq*2*i/SAMPLE_RATE)*gain*over*env;
       data[offset+i]=Math.max(-1,Math.min(1,s))*32767;
     }
     offset+=n;
@@ -590,16 +593,21 @@ function makeSound(segments){
   const url=URL.createObjectURL(wavBlob(synthSamples(segments)));
   const a=new Audio(url); a.preload='auto'; return a;
 }
-// Bip crescendo : plus fort et plus aigu à mesure que le décompte approche de zéro.
+// Bip crescendo, en douceur : plus présent à mesure que le décompte approche de
+// zéro, mais reste un "ding" feutré, pas une alarme (registre grave, volume modéré).
 const COUNTDOWN_SOUNDS={};
 for(let s=1;s<=10;s++){
   const p=(11-s)/10;
-  COUNTDOWN_SOUNDS[s]=makeSound([{freq:650+p*550,gain:0.35+p*0.55,dur:0.09+p*0.07}]);
+  COUNTDOWN_SOUNDS[s]=makeSound([{freq:420+p*260,gain:0.15+p*0.2,dur:0.1+p*0.04,over:0.22}]);
 }
 const PHASE_SOUNDS={
-  work:makeSound([{freq:1320,gain:0.6,dur:0.18}]),
-  rest:makeSound([{freq:440,gain:0.6,dur:0.18}]),
-  end:makeSound([{freq:660,gain:0.65,dur:0.2},{freq:880,gain:0.65,dur:0.24}])
+  work:makeSound([{freq:587,gain:0.32,dur:0.17,over:0.25}]),
+  rest:makeSound([{freq:349,gain:0.28,dur:0.24,over:0.2}]),
+  end:makeSound([
+    {freq:523,gain:0.34,dur:0.15,over:0.22},{freq:0,gain:0,dur:0.03},
+    {freq:659,gain:0.34,dur:0.15,over:0.22},{freq:0,gain:0,dur:0.03},
+    {freq:784,gain:0.36,dur:0.24,over:0.22}
+  ])
 };
 const ALL_SOUNDS=[...Object.values(COUNTDOWN_SOUNDS),...Object.values(PHASE_SOUNDS)];
 function playSound(a){
