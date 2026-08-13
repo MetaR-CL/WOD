@@ -78,8 +78,13 @@ section{margin-bottom:26px}
 
 /* --- timer --- */
 .timer{text-align:center;padding:8px 0 4px}
-.clock{font-size:88px;font-weight:800;letter-spacing:-.045em;line-height:1;font-variant-numeric:tabular-nums}
+.clock{font-size:88px;font-weight:800;letter-spacing:-.045em;line-height:1;font-variant-numeric:tabular-nums;display:inline-block}
 .clock.rest{color:var(--rest)}
+.clock.flash{animation:clockFlash .35s ease-out}
+@keyframes clockFlash{
+  0%{transform:scale(1.15);text-shadow:0 0 26px currentColor}
+  100%{transform:scale(1);text-shadow:0 0 0 transparent}
+}
 .phase{font-size:12px;letter-spacing:.24em;text-transform:uppercase;font-weight:700;color:var(--bone-dim);margin-bottom:12px}
 .now{font-size:24px;font-weight:800;line-height:1.15;margin:16px 0 4px}
 .next{color:var(--bone-dim);font-size:13px;margin-top:14px}
@@ -103,7 +108,7 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--gr
 nav.tabs button{flex:1;background:none;border:none;color:var(--bone-dim);font:inherit;
   font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:15px 4px;cursor:pointer}
 nav.tabs button.on{color:var(--signal)}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
@@ -474,10 +479,56 @@ async function keepAwake(on){
   try{ if(on&&'wakeLock'in navigator){lock=await navigator.wakeLock.request('screen')}
        else if(lock){lock.release();lock=null} }catch(e){}
 }
+
+/* ---------- son + flash du décompte ---------- */
+let audioCtx=null;
+function ensureAudio(){
+  try{
+    if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended') audioCtx.resume();
+  }catch(e){}
+  return audioCtx;
+}
+const BEEP_FREQ={tick:880,work:1320,rest:440};
+function beep(kind){
+  const ctx=ensureAudio(); if(!ctx) return;
+  try{
+    const dur=kind==='tick'?0.09:0.18;
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    const t0=ctx.currentTime;
+    o.type='sine';o.frequency.setValueAtTime(BEEP_FREQ[kind],t0);
+    g.gain.setValueAtTime(0.0001,t0);
+    g.gain.exponentialRampToValueAtTime(0.25,t0+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+    o.start(t0);o.stop(t0+dur+0.02);
+  }catch(e){}
+}
+function beepEnd(){
+  const ctx=ensureAudio(); if(!ctx) return;
+  try{
+    [660,880].forEach((freq,i)=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      const t0=ctx.currentTime+i*0.12;
+      o.type='sine';o.frequency.setValueAtTime(freq,t0);
+      g.gain.setValueAtTime(0.0001,t0);
+      g.gain.exponentialRampToValueAtTime(0.3,t0+0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001,t0+0.22);
+      o.start(t0);o.stop(t0+0.24);
+    });
+  }catch(e){}
+}
+function flashClock(){
+  const el=document.getElementById('clock');
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+}
+
 function sets(reps){const m=reps.match(/^(\d+) ×/);return m?+m[1]:3}
 function startRun(){
   const btn=document.getElementById('doneSet');
   document.getElementById('pause').textContent='Pause';
+  ensureAudio();
   if(wod.mode==='vo2'){
     run={mode:'vo2',round:1,station:0,phase:'work',t:wod.circuit.work,paused:false};
     btn.textContent='Passer';
@@ -494,11 +545,21 @@ function tick(){
   if(!run||run.paused)return;
   if(run.mode==='vo2'){
     run.t--;
-    if(run.t<=0) vo2Advance();
+    if(run.t<=0){
+      const phase=vo2Advance();
+      if(phase==='end') return;
+      beep(phase);flashClock();
+    } else if(run.t<=3){
+      beep('tick');
+    }
     paintVo2Run();
     return;
   }
-  if(run.rest){ run.t--; if(run.t<=0){run.rest=false;run.t=0;} }
+  if(run.rest){
+    run.t--;
+    if(run.t<=0){ run.rest=false; run.t=0; beep('work'); flashClock(); }
+    else if(run.t<=3){ beep('tick'); }
+  }
   else run.t++;
   paintClock();
 }
@@ -532,13 +593,14 @@ function nextSet(){
 /* ---------- circuit VO2max ---------- */
 function vo2Advance(){
   const stations=wod.circuit.stations;
-  if(run.phase==='work'){ run.phase='rest'; run.t=wod.circuit.rest; return; }
+  if(run.phase==='work'){ run.phase='rest'; run.t=wod.circuit.rest; return 'rest'; }
   run.station++;
   if(run.station>=stations.length){
     run.station=0; run.round++;
-    if(run.round>wod.circuit.rounds){ endRun(); return; }
+    if(run.round>wod.circuit.rounds){ endRun(); return 'end'; }
   }
   run.phase='work'; run.t=wod.circuit.work;
+  return 'work';
 }
 function paintVo2Run(){
   const stations=wod.circuit.stations,st=stations[run.station];
@@ -556,7 +618,7 @@ function paintVo2Run(){
     : (isLast?'Dernière ligne droite après ce repos':'Ensuite · '+nextSt.n);
 }
 function endRun(){
-  clearInterval(run.iv);keepAwake(false);
+  clearInterval(run.iv);keepAwake(false);beepEnd();
   document.getElementById('painList').innerHTML=
     '<button class="chip" data-p="aucune" aria-pressed="true">Aucune</button>'+
     wod.ex.map((e,i)=>`<button class="chip" data-p="${i}" aria-pressed="false">${e.n}</button>`).join('');
@@ -623,7 +685,12 @@ document.getElementById('wodList').onclick=e=>{const b=e.target.closest('[data-s
   if(next){wod.ex[i]=next;paintWod();}};
 document.getElementById('start').onclick=startRun;
 document.getElementById('doneSet').onclick=()=>{
-  if(run.mode==='vo2'){ vo2Advance(); paintVo2Run(); return; }
+  if(run.mode==='vo2'){
+    const phase=vo2Advance();
+    if(phase==='end') return;
+    beep(phase);flashClock();paintVo2Run();
+    return;
+  }
   nextSet();
 };
 document.getElementById('pause').onclick=e=>{run.paused=!run.paused;
