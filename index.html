@@ -93,6 +93,7 @@ body.has-nav .wrap{padding-bottom:calc(env(safe-area-inset-bottom) + 100px)}
 .ex{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
 .ex.hi{border:2px solid var(--accent);background:rgba(255,138,61,.06)}
 .ex .body{flex:1;min-width:0}
+.ex .patname{color:var(--accent);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px}
 .ex .nm{color:var(--text);font-weight:800;font-size:14px}
 .ex.hi .nm{color:var(--accent)}
 .ex .dose{color:var(--text-dim);font-size:11px;margin-top:2px;line-height:1.4}
@@ -273,7 +274,18 @@ nav.tabs button.on{color:var(--accent)}
         <p><b>L'idée générale.</b> Tout reste sur ton téléphone, rien n'est envoyé nulle part. Deux types de séance : <b>Force</b> (renfo par paliers de progression) et <b>VO2max</b> (circuit cardio intense). Choisis un mode et une durée sur l'accueil, puis tape "Générer".</p>
       </div>
       <div class="card">
-        <p><b>La liste d'exercices.</b> Avant de commencer, tu peux échanger un exercice contre une variante du même mouvement avec le bouton ⇄. "Regénérer" retire toute la séance et en propose une nouvelle.</p>
+        <p><b>La liste d'exercices.</b> Avant de commencer, tu peux échanger un exercice contre une variante du même mouvement avec le bouton ⇄. "Regénérer" retire toute la séance et en propose une nouvelle. L'étiquette au-dessus de chaque nom d'exercice indique son pattern — c'est ce qui te dit quel groupe musculaire il travaille.</p>
+      </div>
+      <div class="card">
+        <p><b>Les 8 patterns, et ce qu'ils travaillent.</b> Une séance Force en contient toujours un de chaque — jamais 0, jamais 2 — donc rien n'est oublié d'une séance à l'autre, seul l'exercice précis tourne.</p>
+        <p style="margin-top:8px"><b>Charnière</b> — ischio-jambiers, fessiers, bas du dos.<br>
+        <b>Squat</b> — quadriceps, fessiers.<br>
+        <b>Poussée verticale</b> — épaules, triceps.<br>
+        <b>Poussée horizontale</b> — pectoraux, triceps.<br>
+        <b>Tirage vertical</b> — grand dorsal, biceps.<br>
+        <b>Tirage horizontal</b> — milieu du dos, biceps.<br>
+        <b>Anti-rotation</b> — sangle abdominale profonde, obliques.<br>
+        <b>Stabilisateurs de hanche</b> — moyen fessier, adducteurs : ce qui empêche le genou de partir vers l'intérieur sur un appui instable, particulièrement utile en trail.</p>
       </div>
       <div class="card">
         <p><b>Le déroulé du chrono.</b> 20 secondes de préparation (pose le téléphone, mets-toi en place) → 5 minutes d'échauffement chronométré → puis les exercices. Tu peux passer une étape en avance avec SKIP. Pendant le repos, le décompte bipe de plus en plus fort dans les 5 dernières secondes pour te prévenir sans regarder l'écran.</p>
@@ -323,7 +335,8 @@ const PATTERNS=[
   {id:'pushH', short:'Poussée horiz.'},
   {id:'pullV', short:'Tirage vert.'},
   {id:'pullH', short:'Tirage horiz.'},
-  {id:'core',  short:'Anti-rotation'}
+  {id:'core',  short:'Anti-rotation'},
+  {id:'hip',   short:'Stab. hanche'}
 ];
 
 /* ---------- bibliothèque : 4 paliers par pattern, plusieurs variantes par palier ---------- */
@@ -343,7 +356,8 @@ hinge:[
  ],
  [
   {n:"Half snatch",eq:['kb'],reps:"3 × 6 / côté",cue:"Trajectoire près du corps, poinçonne vers le haut. Arrête la série dès que la forme se dégrade."},
-  {n:"Snatch complet",eq:['kb'],reps:"3 × 5 / côté",cue:"Le KB passe au-dessus de la tête en une seule impulsion de hanche. Verrouille le coude en haut, absorbe la réception."}
+  {n:"Snatch complet",eq:['kb'],reps:"3 × 5 / côté",cue:"Le KB passe au-dessus de la tête en une seule impulsion de hanche. Verrouille le coude en haut, absorbe la réception."},
+  {n:"Nordic curl",eq:['rien'],reps:"3 × 4–6",cue:"Chevilles bloquées sous un meuble lourd. Résiste le plus longtemps possible en descendant, rattrape-toi avec les mains au sol si besoin — la référence pour prévenir les blessures aux ischios."}
  ]
 ],
 squat:[
@@ -357,7 +371,8 @@ squat:[
  ],
  [
   {n:"Fente bulgare",eq:['rien'],reps:"3 × 8 / jambe",cue:"Pied arrière sur une chaise. Le travail est sur la jambe avant, l'arrière ne fait qu'équilibrer."},
-  {n:"Split squat lesté (kettlebell)",eq:['kb'],reps:"3 × 8 / jambe",cue:"Un KB en goblet ou en suitcase d'un côté. Buste vertical, même trajectoire que la version au poids du corps."}
+  {n:"Split squat lesté (kettlebell)",eq:['kb'],reps:"3 × 8 / jambe",cue:"Un KB en goblet ou en suitcase d'un côté. Buste vertical, même trajectoire que la version au poids du corps."},
+  {n:"Step-down excentrique",eq:['rien'],reps:"3 × 8 / jambe",cue:"Debout sur une marche, descends l'autre pied vers le sol en 3-4 secondes sans le poser, puis remonte. Exactement le contrôle qu'il faut en descente de sentier."}
  ],
  [
   {n:"Fente bulgare lestée",eq:['kb'],reps:"3 × 8 / jambe",cue:"KB en rack d'un côté. Bassin de niveau, pas de bascule latérale."},
@@ -452,6 +467,27 @@ core:[
  [
   {n:"Turkish get-up",eq:['kb'],reps:"3 × 2 / côté",cue:"Lent, une phase à la fois, les yeux sur le KB. C'est un test de mobilité, pas un exercice de force."},
   {n:"Planche latérale, jambe levée",eq:['rien'],reps:"3 × 25–30 s / côté",cue:"Même gainage que la planche latérale, jambe du dessus levée et tenue. Le bassin reste stable."}
+ ]
+],
+// Moyen fessier + adducteurs : les stabilisateurs qui empêchent le genou de partir
+// vers l'intérieur sur un appui instable — le plus sous-travaillé, et le plus lié
+// aux douleurs de genou et à la bandelette ilio-tibiale chez les coureurs.
+hip:[
+ [
+  {n:"Clamshells",eq:['rien'],reps:"3 × 15 / côté",cue:"Allongé sur le côté, genoux fléchis, talons collés. Ouvre le genou du dessus sans faire bouger le bassin."},
+  {n:"Équilibre 1 jambe",eq:['rien'],reps:"3 × 30 s / côté",cue:"Regard fixe droit devant, genou légèrement fléchi. Ferme les yeux si c'est trop facile."}
+ ],
+ [
+  {n:"Marche latérale, élastique aux genoux",eq:['elastique'],reps:"3 × 10 pas / côté",cue:"Genoux légèrement fléchis, bassin stable. L'élastique doit rester tendu à chaque pas, pas de relâchement."},
+  {n:"Fire hydrant",eq:['rien'],reps:"3 × 12 / côté",cue:"À quatre pattes, lève le genou sur le côté sans faire tourner le bassin. Mouvement court et contrôlé."}
+ ],
+ [
+  {n:"Pont fessier 1 jambe",eq:['rien'],reps:"3 × 10 / jambe",cue:"L'autre jambe tendue en l'air. Monte le bassin sans le faire basculer d'un côté."},
+  {n:"Copenhagen plank, genou fléchi",eq:['rien'],reps:"3 × 15–20 s / côté",cue:"Pied du dessus posé sur une chaise, genou du dessous fléchi au sol. Corps aligné, hanche haute."}
+ ],
+ [
+  {n:"Copenhagen plank, jambe tendue",eq:['rien'],reps:"3 × 15–20 s / côté",cue:"Même position mais jambe du dessous tendue. Exigeant pour les adducteurs — arrête si la hanche s'affaisse."},
+  {n:"Marche latérale, élastique fort",eq:['elastique'],reps:"3 × 15 pas / côté",cue:"Élastique plus résistant, pas plus larges. Le bassin reste de niveau du début à la fin."}
  ]
 ]
 };
@@ -617,7 +653,9 @@ function paintWodForce(){
       <div class="nm">${WARM.n}</div><div class="dose">${WARM.reps} · ${WARM.cue}</div></div></div>`+
     wod.ex.map((e,i)=>{
       const loadUp=e.eq&&e.eq.includes('kb')&&readyToLoadUp(e.n,repsTarget(e.reps));
+      const patName=e.pat?PATTERNS.find(p=>p.id===e.pat).short:'Accessoire';
       return `<div class="ex ${i===highlightIdx?'hi':''}"><div class="body">
+      <div class="patname">${patName}</div>
       <div class="nm">${e.n}${e.lvl?`<span class="lvl">P${e.lvl}</span>`:''}${loadUp?`<span class="lvl" style="color:var(--accent);border-color:var(--accent)">💪 charge+</span>`:''}</div>
       <div class="dose">${e.reps} · ${e.cue}</div></div>
       ${e.pat?`<button class="swap" data-swap="${i}" title="Changer d'exercice" aria-label="Changer d'exercice">⇄</button>`:''}</div>`;
@@ -631,6 +669,7 @@ function paintWodVo2(){
     `<div class="ex"><div class="body">
       <div class="nm">${WARM.n}</div><div class="dose">${WARM.reps} · ${WARM.cue}</div></div></div>`+
     c.stations.map((e,i)=>`<div class="ex ${i===highlightIdx?'hi':''}"><div class="body">
+      <div class="patname">Station ${i+1}</div>
       <div class="nm">${e.n}</div>
       <div class="dose">${c.work}s effort · ${c.rest}s repos · ${e.cue}</div></div>
       <button class="swap" data-swap="${i}" title="Changer d'exercice" aria-label="Changer d'exercice">⇄</button></div>`).join('');
