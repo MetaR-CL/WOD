@@ -1061,7 +1061,15 @@ document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>{
   const v=b.dataset.v;if(v==='home'){paintHome();show('home')}else show(v)});
 
 function save(){store.set('wodapp',S)}
-(()=>{const s=store.get('wodapp');if(s)S={...S,...s};S.equip=ALL_EQUIP;paintHome();show('home')})();
+(()=>{
+  const s=store.get('wodapp');
+  if(s)S={...S,...s};
+  // Un pattern ajouté après coup (ex: "hip") manque dans les données déjà sauvegardées
+  // sur l'appareil — sans ça, S.levels[p.id] est undefined et l'écran Niveaux plante.
+  PATTERNS.forEach(p=>{ if(S.levels[p.id]===undefined) S.levels[p.id]=1; });
+  S.equip=ALL_EQUIP;
+  paintHome();show('home');
+})();
 
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js'));
