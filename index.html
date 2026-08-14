@@ -99,8 +99,9 @@ body.has-nav .wrap{padding-bottom:calc(env(safe-area-inset-bottom) + 100px)}
 .ex .dose{color:var(--text-dim);font-size:11px;margin-top:2px;line-height:1.4}
 .lvl{font-size:9px;font-weight:800;color:var(--text-dim);border:1px solid var(--line);
   padding:1px 5px;border-radius:5px;margin-left:5px;vertical-align:1px}
-.swap{flex:none;width:34px;height:34px;border-radius:var(--rp);border:1px solid var(--line-2);
-  background:none;color:var(--text);font-size:14px;cursor:pointer;padding:0;
+.exActions{flex:none;display:flex;flex-direction:column;gap:8px}
+.swap,.demo{flex:none;width:34px;height:34px;border-radius:var(--rp);border:1px solid var(--line-2);
+  background:none;color:var(--text);font-size:14px;cursor:pointer;padding:0;text-decoration:none;
   display:flex;align-items:center;justify-content:center}
 .ex.hi .swap{border-color:rgba(255,138,61,.4);color:var(--accent)}
 
@@ -626,6 +627,11 @@ function shuffle(arr){
   for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
   return a;
 }
+// Recherche vidéo plutôt qu'une image fixe : montre mieux le mouvement, et pas besoin
+// de vérifier/héberger un lien précis par exercice — ça marche pour les ~90 d'un coup.
+function demoUrl(name){
+  return 'https://www.youtube.com/results?search_query='+encodeURIComponent(name+' technique exercice');
+}
 function generate(){ highlightIdx=-1; S.mode==='vo2' ? generateVo2() : generateForce(); }
 function generateForce(){
   let ex=PATTERNS.map(p=>pick(p.id)).filter(Boolean);
@@ -658,7 +664,10 @@ function paintWodForce(){
       <div class="patname">${patName}</div>
       <div class="nm">${e.n}${e.lvl?`<span class="lvl">P${e.lvl}</span>`:''}${loadUp?`<span class="lvl" style="color:var(--accent);border-color:var(--accent)">💪 charge+</span>`:''}</div>
       <div class="dose">${e.reps} · ${e.cue}</div></div>
-      ${e.pat?`<button class="swap" data-swap="${i}" title="Changer d'exercice" aria-label="Changer d'exercice">⇄</button>`:''}</div>`;
+      <div class="exActions">
+      ${e.pat?`<button class="swap" data-swap="${i}" title="Changer d'exercice" aria-label="Changer d'exercice">⇄</button>`:''}
+      <a class="demo" href="${demoUrl(e.n)}" target="_blank" rel="noopener" title="Voir une démo" aria-label="Voir une démo">🔎</a>
+      </div></div>`;
     }).join('');
 }
 function paintWodVo2(){
@@ -672,7 +681,10 @@ function paintWodVo2(){
       <div class="patname">Station ${i+1}</div>
       <div class="nm">${e.n}</div>
       <div class="dose">${c.work}s effort · ${c.rest}s repos · ${e.cue}</div></div>
-      <button class="swap" data-swap="${i}" title="Changer d'exercice" aria-label="Changer d'exercice">⇄</button></div>`).join('');
+      <div class="exActions">
+      <button class="swap" data-swap="${i}" title="Changer d'exercice" aria-label="Changer d'exercice">⇄</button>
+      <a class="demo" href="${demoUrl(e.n)}" target="_blank" rel="noopener" title="Voir une démo" aria-label="Voir une démo">🔎</a>
+      </div></div>`).join('');
 }
 
 /* ---------- chrono ---------- */
