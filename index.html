@@ -292,6 +292,15 @@ nav.tabs button.on{color:var(--accent)}
         <p><b>Le déroulé du chrono.</b> 20 secondes de préparation (pose le téléphone, mets-toi en place) → 5 minutes d'échauffement chronométré → puis les exercices. Tu peux passer une étape en avance avec SKIP. Pendant le repos, le décompte bipe de plus en plus fort dans les 5 dernières secondes pour te prévenir sans regarder l'écran.</p>
       </div>
       <div class="card">
+        <p><b>Les séances alternent LOURD et VOLUME.</b> Une séance sur deux, l'app baisse les répétitions et allonge les repos (lourd), puis l'inverse la fois suivante (volume). Varier le stimulus plutôt que répéter la même séance donne de meilleurs résultats à volume égal, et ça laisse des jours plus légers pour tes jambes avant une sortie.</p>
+      </div>
+      <div class="card">
+        <p><b>Les exercices sont appairés (superset).</b> Un mouvement du bas du corps est enchaîné avec un du haut : pendant que tu fais l'un, l'autre récupère. Chaque exercice garde sa vraie fenêtre de récupération, mais la séance dure environ moitié moins longtemps — c'est ce qui permet de couvrir les 8 patterns à chaque fois sans y passer une heure.</p>
+      </div>
+      <div class="card">
+        <p><b>Le repos s'adapte à chaque exercice.</b> Fini le 60s pour tout : un mouvement explosif ou lourd reçoit ~2 min (le temps que la filière énergétique se recharge), un travail modéré ~90s, un exercice de stabilité ~60s. Un repos long sur les gros mouvements donne de meilleurs gains de force <i>et</i> de muscle qu'un repos court, contrairement à l'intuition. Le nombre de séries est ensuite ajusté pour tenir dans la durée que tu as choisie.</p>
+      </div>
+      <div class="card">
         <p><b>Logger tes séries.</b> Pendant l'effort d'un exercice au kettlebell, un petit réglage poids + reps apparaît sous le chrono, déjà pré-rempli au plan prévu. Si tu suis le programme tel quel, tu n'as rien à toucher — ajuste seulement si tu as fait plus lourd ou plus/moins de reps. Ça sert à suivre ta vraie progression, pas juste ce qui était prévu.</p>
       </div>
       <div class="card">
@@ -516,10 +525,10 @@ const VO2_POOL=[
 ];
 
 const ALL_EQUIP=['kb','anneaux','barre','elastique','rien'];
-const DURS=[{v:20,l:'20'},{v:30,l:'30'},{v:45,l:'45'}];
+const DURS=[{v:30,l:'30'},{v:40,l:'40'},{v:50,l:'50'}];
 const MODES=[{id:'force',l:'FORCE',sub:'Paliers'},{id:'vo2',l:'VO2MAX',sub:'Cardio'}];
 const VO2_WORK=40, VO2_REST=20;
-const VO2_ROUNDS={20:3,30:5,45:7};
+const VO2_ROUNDS={30:5,40:7,50:9};
 const PREP_SECONDS=20, WARMUP_SECONDS=300;
 const DEFAULT_WEIGHT=16; // kg, point de départ neutre pour un exercice jamais loggé
 
@@ -637,13 +646,134 @@ function demoUrl(name){
   return 'https://www.youtube.com/results?search_query='+encodeURIComponent(name+' technique exercice');
 }
 function generate(){ highlightIdx=-1; S.mode==='vo2' ? generateVo2() : generateForce(); }
+
+/* ---------- calibrage des séances Force ----------
+   Le repos n'est plus fixe : il dépend du type de mouvement. Un exercice lourd
+   ou explosif a besoin de la voie ATP-PC pour se recharger (~2 min), alors qu'un
+   travail de stabilisation léger récupère en 45-60 s. Les revues sur le sujet
+   (de Salles 2009 ; Schoenfeld 2016) montrent qu'un repos long sur les mouvements
+   polyarticulaires donne de meilleurs gains de force ET d'hypertrophie qu'un
+   repos court — l'inverse de l'intuition "moins de repos = plus efficace". */
+const REST_BY_TYPE={explosif:120,lourd:120,modere:90,stab:60};
+const EXPLOSIF=/swing|snatch|sauté|saut|jump|push press|clean|thruster/i;
+function exerciseType(e){
+  if(!e.pat) return 'modere';
+  if(EXPLOSIF.test(e.n)) return 'explosif';
+  if(e.pat==='hip'||e.pat==='core') return 'stab';
+  if(e.lvl>=3) return 'lourd';          // paliers hauts = variantes vraiment dures
+  return 'modere';
+}
+// Durée réelle d'une série, pour que le budget temps ne soit pas une fiction.
+function workSeconds(reps){
+  const perSide=/\/ (côté|jambe)/.test(reps)?2:1;
+  const hold=reps.match(/(\d+)(?:–\d+)? s/);
+  if(hold) return +hold[1]*perSide;
+  const r=reps.match(/× (\d+)/);
+  return (r?+r[1]:10)*3*perSide;        // ~3 s par répétition, tempo contrôlé
+}
+// Alternance lourd / volume d'une séance à l'autre (périodisation ondulatoire) :
+// varier le stimulus plutôt que répéter la même séance donne de meilleurs gains
+// à volume égal, et laisse des jours "légers" pour les jambes avant une sortie.
+function sessionKind(){
+  const last=[...S.history].reverse().find(h=>h.mode==='force');
+  return last&&last.kind==='lourd'?'volume':'lourd';
+}
+const KIND_CFG={
+  lourd:{restMul:1.25,repMul:0.7,label:'LOURD',note:'Charges plus lourdes, séries plus courtes, repos longs. Garde 1-2 reps en réserve.'},
+  volume:{restMul:0.85,repMul:1,label:'VOLUME',note:'Plus de répétitions, repos plus courts. Garde 2-3 reps en réserve.'}
+};
 function generateForce(){
+  const kind=sessionKind(),cfg=KIND_CFG[kind];
   let ex=PATTERNS.map(p=>pick(p.id)).filter(Boolean);
-  if(S.dur===20){ ex=ex.slice(0,5).concat(ex.slice(5)); ex.forEach(e=>e.reps=e.reps.replace(/^[34] ×/,'2 ×')); }
-  if(S.dur===45&&ACCESS.eq.some(e=>S.equip.includes(e))) ex.push({...ACCESS,lvl:null,pat:null});
-  wod={mode:'force',ex,rest:S.dur===20?40:60};
+  ex.forEach(e=>{
+    e.rest=Math.round(REST_BY_TYPE[exerciseType(e)]*cfg.restMul/5)*5;
+    e.sets=sets(e.reps);
+    if(kind==='lourd'){                 // moins de reps, mais on ne descend pas sous 3
+      e.reps=e.reps.replace(/× (\d+)/,(m,n)=>'× '+Math.max(3,Math.round(+n*cfg.repMul)));
+    }
+  });
+  if(S.dur===45&&ACCESS.eq.some(q=>S.equip.includes(q))){
+    const a={...ACCESS,lvl:null,pat:null};
+    a.rest=REST_BY_TYPE.modere; a.sets=sets(a.reps); ex.push(a);
+  }
+  fitToBudget(ex,S.dur);
+  wod={mode:'force',kind,ex,seq:buildSequence(ex),rest:90};
   paintWod();
 }
+// Ajuste le nombre de séries pour tenir dans la durée annoncée, en rognant d'abord
+// sur le haut du corps : pour un coureur, charnière / squat / stabilité de hanche
+// sont ce qu'il faut préserver en priorité.
+const TRIM_ORDER=['pushH','pullH','pushV','pullV','core','hip','squat','hinge'];
+const MIN_SETS=2,MAX_SETS=5;
+function fitToBudget(ex,dur){
+  const budget=dur*60-WARMUP_SECONDS-PREP_SECONDS;
+  // Coût mesuré sur la séquence appairée, pas sur les exercices isolés.
+  const cost=()=>buildSequence(ex).reduce((t,s)=>t+workSeconds(ex[s.i].reps)+s.rest,0);
+  // Trop long : on rogne d'abord le haut du corps, on préserve le bas et la hanche.
+  for(const pat of TRIM_ORDER){
+    while(cost()>budget){
+      const e=ex.find(x=>x.pat===pat&&x.sets>MIN_SETS);
+      if(!e) break;
+      e.sets--;
+    }
+    if(cost()<=budget) break;
+  }
+  // De la marge : on ajoute à tour de rôle, en commençant par ce qui compte le
+  // plus pour un coureur, pour ne pas déséquilibrer la séance.
+  const addOrder=[...TRIM_ORDER].reverse();
+  let progressed=true;
+  while(progressed){
+    progressed=false;
+    for(const pat of addOrder){
+      const e=ex.find(x=>x.pat===pat&&x.sets<MAX_SETS);
+      if(!e) continue;
+      e.sets++;
+      if(cost()>budget){ e.sets--; progressed=false; break; }
+      progressed=true;
+    }
+  }
+  // Normalise l'affichage : certaines fourchettes ("8–12") n'ont pas de préfixe de séries.
+  ex.forEach(e=>{
+    e.reps=/^\d+ ×/.test(e.reps) ? e.reps.replace(/^\d+ ×/,e.sets+' ×') : e.sets+' × '+e.reps;
+  });
+}
+
+/* ---------- superset antagoniste ----------
+   Appairer un mouvement du bas du corps avec un du haut : pendant que l'un
+   travaille, l'autre récupère. Chaque exercice garde sa vraie fenêtre de
+   récupération (2 min sur un mouvement lourd), mais la séance dure environ
+   moitié moins — c'est ce qui permet de couvrir les 8 patterns à chaque fois
+   sans passer une heure et sans sacrifier la qualité des séries. */
+const PAIR_LOWER=['hinge','squat','hip','core'];
+const PAIR_UPPER=['pushV','pullV','pushH','pullH'];
+function buildSequence(ex){
+  const idxOf=list=>list.map(p=>ex.findIndex(e=>e.pat===p)).filter(i=>i>=0);
+  const L=idxOf(PAIR_LOWER),U=idxOf(PAIR_UPPER);
+  const paired=new Set([...L,...U]);
+  const pairs=[];
+  for(let k=0;k<Math.max(L.length,U.length);k++){
+    const pair=[L[k],U[k]].filter(i=>i!==undefined);
+    if(pair.length) pairs.push(pair);
+  }
+  ex.forEach((e,i)=>{ if(!paired.has(i)) pairs.push([i]); });  // accessoire éventuel
+
+  const seq=[];
+  pairs.forEach(pair=>{
+    const maxSets=Math.max(...pair.map(i=>ex[i].sets));
+    for(let s=1;s<=maxSets;s++) pair.forEach(i=>{ if(ex[i].sets>=s) seq.push({i,set:s}); });
+  });
+  // Repos après chaque étape : quand un partenaire suit, on ne "paye" que la
+  // moitié de la fenêtre de récupération, l'autre moitié étant couverte par son travail.
+  seq.forEach((step,k)=>{
+    const e=ex[step.i],next=seq[k+1];
+    if(!next){ step.rest=0; return; }
+    if(next.i===step.i){ step.rest=e.rest; return; }
+    step.rest=Math.max(30,Math.round((e.rest-workSeconds(ex[next.i].reps))/2/5)*5);
+  });
+  return seq;
+}
+function curStep(){ return wod.seq[run.step]; }
+function curEx(){ return wod.ex[curStep().i]; }
 function generateVo2(){
   const stations=shuffle(VO2_POOL).slice(0,5).map(v=>({...v}));
   wod={mode:'vo2',ex:stations,circuit:{stations,work:VO2_WORK,rest:VO2_REST,rounds:VO2_ROUNDS[S.dur]||4}};
@@ -656,9 +786,11 @@ function pickVo2(exclude){
 }
 function paintWod(){ wod.mode==='vo2' ? paintWodVo2() : paintWodForce(); }
 function paintWodForce(){
-  document.getElementById('seanceTitle').textContent='SÉANCE FORCE';
+  const cfg=KIND_CFG[wod.kind]||KIND_CFG.volume;
+  document.getElementById('seanceTitle').textContent='SÉANCE '+cfg.label;
   document.getElementById('seanceMeta').textContent=S.dur+' MIN';
   document.getElementById('wodList').innerHTML=
+    `<div class="card tip" style="margin-bottom:2px"><p><b>Séance ${cfg.label.toLowerCase()} :</b> ${cfg.note}</p></div>`+
     `<div class="ex"><div class="body">
       <div class="nm">${WARM.n}</div><div class="dose">${WARM.reps} · ${WARM.cue}</div></div></div>`+
     wod.ex.map((e,i)=>{
@@ -667,7 +799,7 @@ function paintWodForce(){
       return `<div class="ex ${i===highlightIdx?'hi':''}"><div class="body">
       <div class="patname">${patName}</div>
       <div class="nm">${e.n}${e.lvl?`<span class="lvl">P${e.lvl}</span>`:''}${loadUp?`<span class="lvl" style="color:var(--accent);border-color:var(--accent)">💪 charge+</span>`:''}</div>
-      <div class="dose">${e.reps} · ${e.cue}</div></div>
+      <div class="dose">${e.reps} · récup ${restFor(e)}s · ${e.cue}</div></div>
       <div class="exActions">
       ${e.pat?`<button class="swap" data-swap="${i}" title="Changer d'exercice" aria-label="Changer d'exercice">⇄</button>`:''}
       <a class="demo" href="${demoUrl(e.n)}" target="_blank" rel="noopener" title="Voir une démo" aria-label="Voir une démo">🔎</a>
@@ -806,7 +938,9 @@ function enterMain(){
     run.stage='circuit'; run.round=1; run.station=0; run.phase='work'; run.t=wod.circuit.work;
     paintVo2Run();
   }else{
-    run.stage='main'; run.i=0; run.set=1; run.rest=false; run.t=0; run.done={}; run.log=[];
+    // w/r : poids et reps en cours PAR exercice — en superset on alterne entre deux
+    // mouvements, une valeur globale serait écrasée par le partenaire à chaque série.
+    run.stage='main'; run.step=0; run.rest=false; run.t=0; run.done={}; run.log=[]; run.w={}; run.r={};
     paintRun();
   }
 }
@@ -867,14 +1001,17 @@ function paintClock(){
   setPhase(run.rest?'rest':'effort');
 }
 function paintRun(){
-  const e=wod.ex[run.i];
-  document.getElementById('runMeta').textContent=`EXERCICE ${run.i+1}/${wod.ex.length}`;
+  const step=curStep(),e=curEx();
+  document.getElementById('runMeta').textContent=
+    `SÉRIE ${step.set}/${e.sets} · ${run.step+1} SUR ${wod.seq.length}`;
   document.getElementById('now').textContent=e.n;
   document.getElementById('rundose').textContent=`${e.reps} · ${e.cue}`;
-  const nx=wod.ex[run.i+1];
-  document.getElementById('next').textContent=nx?'SUIVANT · '+nx.n:'Dernier exercice';
-  if(run.set===1) run.curWeight=S.weights[e.n]||DEFAULT_WEIGHT;
-  run.curReps=repsTarget(e.reps);
+  const nx=wod.seq[run.step+1];
+  document.getElementById('next').textContent=nx?'SUIVANT · '+wod.ex[nx.i].n:'Dernière série';
+  const k=step.i;
+  if(run.w[k]===undefined) run.w[k]=S.weights[e.n]||DEFAULT_WEIGHT;
+  if(run.r[k]===undefined) run.r[k]=repsTarget(e.reps);
+  run.curWeight=run.w[k]; run.curReps=run.r[k];
   paintSetLog(e);
   paintClock();
 }
@@ -899,16 +1036,14 @@ function logSet(e){
   run.log.push(entry);
   if(entry.weight!=null) S.weights[e.n]=entry.weight;
 }
+function restFor(e){ return (e&&e.rest)||wod.rest||90; }
 function nextSet(){
-  const e=wod.ex[run.i],total=sets(e.reps);
+  const step=curStep(),e=curEx();
   logSet(e);
-  if(run.set<total){ run.set++; run.rest=true; run.t=wod.rest; beep('rest');flashClock(); }
-  else{
-    if(e.pat)run.done[e.pat]=1;
-    if(run.i<wod.ex.length-1){ run.i++; run.set=1; run.rest=true; run.t=wod.rest; beep('rest');flashClock();paintRun(); }
-    else return endRun();
-  }
-  paintRun();
+  if(e.pat)run.done[e.pat]=1;
+  if(run.step>=wod.seq.length-1) return endRun();
+  run.step++; run.rest=true; run.t=step.rest;
+  beep('rest');flashClock();paintRun();
 }
 
 /* ---------- circuit VO2max ---------- */
@@ -1018,9 +1153,10 @@ document.getElementById('wodList').onclick=e=>{const b=e.target.closest('[data-s
 document.getElementById('setlog').onclick=e=>{
   const b=e.target.closest('[data-log]');if(!b)return;
   const[kind,delta]=b.dataset.log.split(':');
-  if(kind==='wt') run.curWeight=Math.max(0,run.curWeight+(+delta*2));
-  else run.curReps=Math.max(0,run.curReps+ +delta);
-  paintSetLog(wod.ex[run.i]);
+  const k=curStep().i;
+  if(kind==='wt') run.w[k]=run.curWeight=Math.max(0,run.curWeight+(+delta*2));
+  else run.r[k]=run.curReps=Math.max(0,run.curReps+ +delta);
+  paintSetLog(curEx());
 };
 document.getElementById('start').onclick=startRun;
 document.getElementById('doneSet').onclick=()=>{
@@ -1049,7 +1185,7 @@ document.getElementById('painList').onclick=e=>{const b=e.target.closest('[data-
 document.getElementById('save').onclick=()=>{
   const pain=[...document.querySelectorAll('#painList .chip[aria-pressed="true"]')]
     .filter(c=>c.dataset.p!=='aucune').map(c=>wod.ex[+c.dataset.p].n);
-  S.history.push({d:Date.now(),dur:S.dur,mode:wod.mode,rpe:selectedRPE,
+  S.history.push({d:Date.now(),dur:S.dur,mode:wod.mode,kind:wod.kind||null,rpe:selectedRPE,
     pain,pats:wod.ex.filter(e=>e.pat).map(e=>e.pat),sets:(run&&run.log)||[]});
   pain.forEach(nm=>{const e=wod.ex.find(x=>x.n===nm);
     if(e&&e.pat&&S.levels[e.pat]>0)S.levels[e.pat]--;});
@@ -1071,6 +1207,10 @@ function save(){store.set('wodapp',S)}
   // Un pattern ajouté après coup (ex: "hip") manque dans les données déjà sauvegardées
   // sur l'appareil — sans ça, S.levels[p.id] est undefined et l'écran Niveaux plante.
   PATTERNS.forEach(p=>{ if(S.levels[p.id]===undefined) S.levels[p.id]=1; });
+  // Les durées proposées ont changé : ramène une ancienne valeur sur la plus proche.
+  if(!DURS.some(d=>d.v===S.dur)){
+    S.dur=DURS.reduce((a,b)=>Math.abs(b.v-S.dur)<Math.abs(a.v-S.dur)?b:a).v;
+  }
   S.equip=ALL_EQUIP;
   paintHome();show('home');
 })();
