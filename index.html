@@ -341,6 +341,15 @@ nav.tabs button.on{color:var(--accent)}
         <p><b>Les boutons du chrono.</b> Le gros bouton est ton geste principal : <b>SÉRIE FAITE</b> valide la série que tu viens de terminer (avec le poids et les reps affichés) et lance le repos. Pendant le repos il devient <b>PASSER LE REPOS</b> si tu es déjà prêt — ça ne compte pas de série en plus. En dessous : <b>PAUSE</b> gèle tout, <b>PASSER</b> saute l'exercice en cours et toutes ses séries restantes, <b>STOP</b> arrête la séance (avec confirmation).</p>
       </div>
       <div class="card">
+        <p><b>Tester les sons.</b> Tape sur un bouton pour l'entendre. Vérifie que le bouton silencieux de ton iPhone n'est pas activé et que le volume média est monté.</p>
+        <div class="chips" style="margin-top:10px">
+          <button class="chip" data-testsound="work">🔔 Début</button>
+          <button class="chip" data-testsound="rest">Repos</button>
+          <button class="chip" data-testsound="tick">Décompte</button>
+          <button class="chip" data-testsound="end">Fin de séance</button>
+        </div>
+      </div>
+      <div class="card">
         <p><b>Corriger après coup.</b> Sur le bilan, la section <b>Séries réalisées</b> liste tout ce que tu as logué, regroupé par exercice. Tape sur un exercice pour l'ouvrir et corriger le poids ou les reps de chaque série, en supprimer une, ou en ajouter. Utile quand on s'est trompé de stepper en plein effort — et important, parce que c'est cette donnée qui déclenche ensuite la suggestion de monter en charge.</p>
       </div>
       <div class="card">
@@ -901,25 +910,36 @@ function setPhase(phase){
    installées en plein écran, même "débloqué". On génère donc de vrais petits
    fichiers WAV en mémoire (pur calcul, aucun réseau) et on les joue via de
    vraies balises <audio>, qui passent par le pipeline média fiable sur iOS. */
-const SAMPLE_RATE=22050;
-function synthSamples(segments){
-  // segments: [{freq,gain,dur,over}], concaténés. "over" ajoute un soupçon
-  // d'octave supérieure (façon carillon) pour adoucir le timbre d'un sinus pur.
-  // Attaque adoucie (ease-in) + chute plus longue pour un son "ding", pas "bip".
-  let total=0; segments.forEach(s=>total+=Math.floor(SAMPLE_RATE*s.dur));
-  const data=new Int16Array(total);
-  let offset=0;
-  segments.forEach(({freq,gain,dur,over})=>{
-    const n=Math.floor(SAMPLE_RATE*dur);
-    const attack=Math.max(1,Math.floor(SAMPLE_RATE*0.018));
-    for(let i=0;i<n;i++){
-      const env=i<attack ? Math.sin((i/attack)*Math.PI/2) : Math.exp(-4*(i-attack)/Math.max(1,n-attack));
-      let s=freq ? Math.sin(2*Math.PI*freq*i/SAMPLE_RATE)*gain*env : 0;
-      if(freq&&over) s+=Math.sin(2*Math.PI*freq*2*i/SAMPLE_RATE)*gain*over*env;
-      data[offset+i]=Math.max(-1,Math.min(1,s))*32767;
-    }
-    offset+=n;
+const SAMPLE_RATE=44100;   // 22 kHz coupait les aigus : une cloche sonnait terne
+/* Synthèse additive d'une cloche. Ce qui distingue une vraie cloche d'un bip :
+   - ses partiels ne sont PAS des multiples entiers de la fondamentale (inharmonicité),
+     c'est ce qui donne la couleur métallique ;
+   - chaque partiel décroît à sa propre vitesse, les aigus s'éteignent en premier,
+     d'où un timbre qui évolue au lieu de rester figé ;
+   - un très court bruit de frappe au tout début donne le "clac" du marteau.
+   partials : [rapport de fréquence, amplitude, durée de décroissance en s] */
+function bellSamples({freq,dur,partials,strike=0.18,gain=0.92,strikes=[0]}){
+  const n=Math.floor(SAMPLE_RATE*dur),out=new Float32Array(n);
+  strikes.forEach((delay,si)=>{
+    const start=Math.floor(SAMPLE_RATE*delay);
+    const level=Math.pow(0.82,si);            // coups suivants un peu plus doux
+    partials.forEach(([ratio,amp,decay])=>{
+      const w=2*Math.PI*freq*ratio/SAMPLE_RATE;
+      const k=Math.exp(-1/(SAMPLE_RATE*decay)); // décroissance par échantillon
+      let env=amp*level;
+      for(let i=start;i<n;i++){ out[i]+=Math.sin(w*(i-start))*env; env*=k;
+        if(env<1e-5) break; }
+    });
+    const tn=Math.floor(SAMPLE_RATE*0.005);
+    for(let i=0;i<tn&&start+i<n;i++) out[start+i]+=(Math.random()*2-1)*strike*level*(1-i/tn);
   });
+  const at=Math.floor(SAMPLE_RATE*0.0015);   // évite le clic numérique à l'attaque
+  for(let i=0;i<at;i++) out[i]*=i/at;
+  const fade=Math.floor(SAMPLE_RATE*0.05);   // et à la coupure finale
+  for(let i=0;i<fade;i++) out[n-1-i]*=i/fade;
+  let peak=0; for(let i=0;i<n;i++){ const a=Math.abs(out[i]); if(a>peak)peak=a; }
+  const norm=peak>0?gain/peak:1,data=new Int16Array(n);
+  for(let i=0;i<n;i++) data[i]=Math.max(-1,Math.min(1,out[i]*norm))*32767;
   return data;
 }
 function wavBlob(int16data){
@@ -932,34 +952,52 @@ function wavBlob(int16data){
   for(let i=0;i<n;i++)v.setInt16(44+i*2,int16data[i],true);
   return new Blob([v],{type:'audio/wav'});
 }
-function makeSound(segments){
-  const url=URL.createObjectURL(wavBlob(synthSamples(segments)));
-  const a=new Audio(url); a.preload='auto'; return a;
+function makeSound(int16){
+  const a=new Audio(URL.createObjectURL(wavBlob(int16)));
+  a.preload='auto'; return a;
 }
-// Bip crescendo, en douceur : plus présent à mesure que le décompte approche de
-// zéro, mais reste un "ding" feutré, pas une alarme (registre grave, volume modéré).
-const COUNTDOWN_SOUNDS={};
-for(let s=1;s<=10;s++){
-  const p=(11-s)/10;
-  COUNTDOWN_SOUNDS[s]=makeSound([{freq:420+p*260,gain:0.15+p*0.2,dur:0.1+p*0.04,over:0.22}]);
+// Cloche de ring : brillante, métallique, tenue ~2 s. Partiels inharmoniques
+// typiques d'une cloche frappée (quinte, tierce mineure, nominale…).
+const RING_PARTIALS=[
+  [1.00,1.00,1.30],[2.00,0.72,0.95],[2.42,0.60,0.72],[3.01,0.42,0.55],
+  [4.18,0.30,0.38],[5.43,0.20,0.26],[6.79,0.14,0.18],[8.21,0.09,0.12]
+];
+// Gong de fin : plus grave, plus long, partiels plus serrés (battements = ampleur).
+const GONG_PARTIALS=[
+  [1.00,1.00,2.60],[1.52,0.70,2.10],[2.03,0.62,1.70],[2.47,0.45,1.30],
+  [3.11,0.32,0.95],[4.06,0.22,0.65],[5.31,0.14,0.45]
+];
+// Décompte : bois/marimba court — présent mais pas agressif.
+function tickSamples(step,total){
+  const p=(total-step+1)/total;
+  return bellSamples({
+    freq:520+p*300,dur:0.16,gain:0.35+p*0.4,strike:0.10,
+    partials:[[1,1,0.055+p*0.02],[4.0,0.28,0.03],[9.2,0.10,0.016]]
+  });
 }
-const PHASE_SOUNDS={
-  work:makeSound([{freq:587,gain:0.32,dur:0.17,over:0.25}]),
-  rest:makeSound([{freq:349,gain:0.28,dur:0.24,over:0.2}]),
-  end:makeSound([
-    {freq:523,gain:0.34,dur:0.15,over:0.22},{freq:0,gain:0,dur:0.03},
-    {freq:659,gain:0.34,dur:0.15,over:0.22},{freq:0,gain:0,dur:0.03},
-    {freq:784,gain:0.36,dur:0.24,over:0.22}
-  ])
-};
-const ALL_SOUNDS=[...Object.values(COUNTDOWN_SOUNDS),...Object.values(PHASE_SOUNDS)];
+let SOUNDS=null;
+// Génération à la première interaction, pas au chargement : ~7 s d'audio à
+// 44 kHz, autant ne pas retarder l'ouverture de l'app.
+function buildSounds(){
+  if(SOUNDS) return SOUNDS;
+  SOUNDS={countdown:{},phase:{}};
+  for(let s=1;s<=10;s++) SOUNDS.countdown[s]=makeSound(tickSamples(s,10));
+  SOUNDS.phase.work=makeSound(bellSamples({freq:620,dur:2.0,partials:RING_PARTIALS,strikes:[0,0.17]}));
+  SOUNDS.phase.rest=makeSound(bellSamples({freq:415,dur:1.4,partials:RING_PARTIALS,gain:0.7,strike:0.10}));
+  SOUNDS.phase.end=makeSound(bellSamples({freq:250,dur:3.4,partials:GONG_PARTIALS,strikes:[0,0.28,0.56]}));
+  return SOUNDS;
+}
+function allSounds(){
+  const s=buildSounds();
+  return [...Object.values(s.countdown),...Object.values(s.phase)];
+}
 function playSound(a){
   if(!a) return;
   try{ a.currentTime=0; a.play().catch(()=>{}); }catch(e){}
 }
 function unlockSounds(){
   // Amorce chaque clip une fois pendant un vrai geste utilisateur, requis par iOS.
-  ALL_SOUNDS.forEach(a=>{
+  allSounds().forEach(a=>{
     try{
       a.muted=true;
       a.play().then(()=>{ a.pause(); a.currentTime=0; a.muted=false; }).catch(()=>{ a.muted=false; });
@@ -967,12 +1005,12 @@ function unlockSounds(){
   });
 }
 ['touchstart','click'].forEach(evt=>document.addEventListener(evt,unlockSounds,{once:true,passive:true}));
-function beep(kind){ playSound(PHASE_SOUNDS[kind]); }
+function beep(kind){ playSound(buildSounds().phase[kind]); }
 function beepCountdown(secondsLeft,window){
   if(secondsLeft<1||secondsLeft>window) return;
-  playSound(COUNTDOWN_SOUNDS[secondsLeft]);
+  playSound(buildSounds().countdown[secondsLeft]);
 }
-function beepEnd(){ playSound(PHASE_SOUNDS.end); }
+function beepEnd(){ playSound(buildSounds().phase.end); }
 function ensureAudio(){ unlockSounds(); }
 function flashClock(){
   const el=document.getElementById('clock');
@@ -1406,6 +1444,13 @@ function mergeState(a,b){
   const fresh=last(b)>=last(a)?b:a, stale=fresh===b?a:b;
   return {...stale,...fresh,history,weights,levels:{...(stale.levels||{}),...(fresh.levels||{})}};
 }
+document.getElementById('v-help').onclick=e=>{
+  const b=e.target.closest('[data-testsound]');if(!b)return;
+  const k=b.dataset.testsound;
+  if(k==='tick'){ let n=3; const seq=()=>{ if(n>0){ beepCountdown(n--,3); setTimeout(seq,650); } }; seq(); }
+  else if(k==='end') beepEnd();
+  else beep(k);
+};
 document.getElementById('importBtn').onclick=()=>document.getElementById('importFile').click();
 document.getElementById('importFile').onchange=ev=>{
   const file=ev.target.files&&ev.target.files[0];
@@ -1464,6 +1509,9 @@ function normalizeState(){
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js'));
 }
+// Prépare les sons une fois l'écran affiché : la synthèse prend ~0,2 s et on ne
+// veut ni retarder l'ouverture, ni la subir au premier tap.
+setTimeout(()=>{ try{ buildSounds(); }catch(e){} },600);
 </script>
 </body>
 </html>
