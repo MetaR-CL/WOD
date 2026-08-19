@@ -41,8 +41,11 @@ body{height:100vh}
 body.phase-effort{background:var(--bg-effort)}
 body.phase-rest{background:var(--bg-rest)}
 
-.wrap{max-width:680px;margin:0 auto;height:100vh;display:flex;flex-direction:column;
-  padding:calc(env(safe-area-inset-top) + 24px) 22px calc(env(safe-area-inset-bottom) + 40px)}
+/* 100dvh suit la hauteur réelle quand Safari replie sa barre ; le plancher de 56px
+   protège du recouvrement par la barre d'état quand env() renvoie 0 (Safari onglet,
+   barre du haut masquée) — en PWA l'inset est plus grand et c'est lui qui gagne. */
+.wrap{max-width:680px;margin:0 auto;height:100vh;height:100dvh;display:flex;flex-direction:column;
+  padding:max(calc(env(safe-area-inset-top) + 24px),56px) 22px calc(env(safe-area-inset-bottom) + 40px)}
 body.has-nav .wrap{padding-bottom:calc(env(safe-area-inset-bottom) + 100px)}
 
 .view{display:none;flex-direction:column;flex:1;gap:20px;min-height:0;overflow-y:auto}
@@ -115,8 +118,18 @@ body.has-nav .wrap{padding-bottom:calc(env(safe-area-inset-bottom) + 100px)}
 .pill.rest{background:var(--rest);color:var(--on-rest)}
 .pill.neutral{background:var(--accent);color:var(--on-accent)}
 
-.runcenter{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
-.exname{color:var(--text);font-size:24px;font-weight:800;text-align:center}
+.progress{height:4px;border-radius:2px;background:var(--line);margin-top:10px;overflow:hidden}
+.progressBar{height:100%;width:0;border-radius:2px;background:var(--accent);transition:width .3s}
+#v-run.phase-effort .progressBar{background:var(--effort)}
+#v-run.phase-rest .progressBar{background:var(--rest)}
+
+.runcenter{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+/* Pendant le repos on annonce explicitement "prochain exercice" : sans ça, le nom
+   affiché au centre se lit comme une consigne à exécuter tout de suite. */
+.exlabel{font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--text-dim)}
+#v-run.phase-rest .exlabel{color:var(--rest)}
+.setinfo{font-size:13px;font-weight:700;color:var(--text-dim)}
+.exname{color:var(--text);font-size:24px;font-weight:800;text-align:center;margin-top:-2px}
 #v-run.phase-rest .exname{color:var(--text-dim-rest);font-size:16px;font-weight:700}
 .clockbox{border-radius:20px;padding:8px 28px;border:3px solid var(--accent)}
 #v-run.phase-effort .clockbox{border-color:var(--effort)}
@@ -233,8 +246,11 @@ nav.tabs button.on{color:var(--accent)}
       <span class="runmeta" id="runMeta"></span>
       <span class="pill effort" id="phasePill">EFFORT</span>
     </div>
+    <div class="progress"><div class="progressBar" id="progressBar"></div></div>
     <div class="runcenter">
+      <span class="exlabel" id="exLabel"></span>
       <span class="exname" id="now"></span>
+      <span class="setinfo" id="setInfo"></span>
       <div class="clockbox"><span class="clock" id="clock">00:00</span></div>
       <p class="rundose" id="rundose"></p>
       <div class="setlog hide" id="setlog"></div>
@@ -996,7 +1012,10 @@ function paintStage(){
   document.getElementById('phasePill').className='pill neutral';
   document.getElementById('phasePill').textContent=run.stage==='prep'?'PRÉPARATION':'ÉCHAUFFEMENT';
   setPhase(null);
+  setProgress(0,1);
   document.getElementById('runMeta').textContent='AVANT SÉANCE';
+  document.getElementById('exLabel').textContent=run.stage==='prep'?'Mise en place':'Échauffement';
+  document.getElementById('setInfo').textContent='';
   document.getElementById('now').textContent=run.stage==='prep'?'Installe-toi':WARM.n;
   document.getElementById('rundose').textContent=run.stage==='prep'
     ?'Pose le téléphone et prépare ton matériel.':WARM.cue;
@@ -1026,8 +1045,10 @@ function tick(){
   }
   if(run.rest){
     run.t--;
-    if(run.t<=0){ run.rest=false; run.t=0; beep('work'); flashClock(); }
-    else beepCountdown(run.t,5);
+    // Fin du repos : il faut repeindre tout l'écran (libellé, réglages), pas
+    // seulement l'horloge, sinon il reste affiché "prochain exercice".
+    if(run.t<=0){ run.rest=false; run.t=0; beep('work'); flashClock(); paintRun(); return; }
+    beepCountdown(run.t,5);
   }
   else run.t++;
   paintClock();
@@ -1040,19 +1061,37 @@ function paintClock(){
   setPhase(run.rest?'rest':'effort');
   paintPrimary();
 }
+function setProgress(done,total){
+  document.getElementById('progressBar').style.width=
+    (total?Math.round(done/total*100):0)+'%';
+}
 function paintRun(){
   const step=curStep(),e=curEx();
-  document.getElementById('runMeta').textContent=
-    `SÉRIE ${step.set}/${e.sets} · ${run.step+1} SUR ${wod.seq.length}`;
+  // Combien d'exercices restent réellement (l'appairage entrelace les séries).
+  const exDone=new Set(wod.seq.slice(0,run.step).map(s=>s.i)).size;
+  const exTotal=new Set(wod.seq.map(s=>s.i)).size;
+  document.getElementById('runMeta').textContent=`EXERCICE ${Math.min(exDone+1,exTotal)} / ${exTotal}`;
+  setProgress(run.step,wod.seq.length);
+
+  document.getElementById('exLabel').textContent=run.rest?'Prochain exercice':'En cours';
   document.getElementById('now').textContent=e.n;
+  document.getElementById('setInfo').textContent=
+    `Série ${step.set} sur ${e.sets} · ${wod.seq.length-run.step} série${wod.seq.length-run.step>1?'s':''} restantes`;
   document.getElementById('rundose').textContent=`${e.reps} · ${e.cue}`;
+
   const nx=wod.seq[run.step+1];
-  document.getElementById('next').textContent=nx?'SUIVANT · '+wod.ex[nx.i].n:'Dernière série';
+  document.getElementById('next').textContent=run.rest
+    ? (nx?'Puis · '+wod.ex[nx.i].n:'Dernière série de la séance')
+    : (nx?'SUIVANT · '+wod.ex[nx.i].n:'Dernière série de la séance');
+
   const k=step.i;
   if(run.w[k]===undefined) run.w[k]=S.weights[e.n]||DEFAULT_WEIGHT;
   if(run.r[k]===undefined) run.r[k]=repsTarget(e.reps);
   run.curWeight=run.w[k]; run.curReps=run.r[k];
-  paintSetLog(e);
+  // Les réglages poids/reps servent à valider la série qu'on vient de faire :
+  // les afficher pendant le repos laisse croire qu'il y a quelque chose à faire.
+  if(run.rest){ document.getElementById('setlog').classList.add('hide'); }
+  else paintSetLog(e);
   paintClock();
 }
 // Log de série : poids (si KB) et reps réelles, pré-remplis au plan pour rester
@@ -1106,15 +1145,23 @@ function paintVo2Run(){
   document.getElementById('phasePill').className='pill '+(run.phase==='rest'?'rest':'effort');
   document.getElementById('phasePill').textContent=run.phase==='rest'?'REPOS':'EFFORT';
   setPhase(run.phase);
-  document.getElementById('runMeta').textContent=`TOUR ${run.round}/${wod.circuit.rounds} · STATION ${run.station+1}/${stations.length}`;
+  const isRest=run.phase==='rest';
+  const total=wod.circuit.rounds*stations.length;
+  const done=(run.round-1)*stations.length+run.station;
+  document.getElementById('runMeta').textContent=`TOUR ${run.round} / ${wod.circuit.rounds}`;
+  setProgress(done,total);
+  // En repos, la station affichée est celle qui arrive : il faut le dire.
+  document.getElementById('exLabel').textContent=isRest?'Prochaine station':'En cours';
   document.getElementById('now').textContent=st.n;
-  document.getElementById('rundose').textContent=run.phase==='work'
-    ? `À fond, vise ~90% de ta FC max · ${st.cue}` : st.cue;
+  document.getElementById('setInfo').textContent=
+    `Station ${run.station+1} sur ${stations.length} · ${total-done} restantes`;
+  document.getElementById('rundose').textContent=isRest
+    ? st.cue : `À fond, vise ~90% de ta FC max · ${st.cue}`;
   const isLast=run.station===stations.length-1&&run.round===wod.circuit.rounds;
   const nextSt=stations[(run.station+1)%stations.length];
-  document.getElementById('next').textContent=run.phase==='work'
-    ? 'SUIVANT · repos'
-    : (isLast?'Dernière ligne droite après ce repos':'PROCHAIN · '+nextSt.n);
+  document.getElementById('next').textContent=isRest
+    ? (isLast?'Dernière ligne droite après ce repos':'Puis · '+nextSt.n)
+    : 'SUIVANT · repos';
 }
 function endRun(){
   clearInterval(run.iv);keepAwake(false);beepEnd();setPhase(null);
