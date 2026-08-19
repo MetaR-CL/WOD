@@ -137,16 +137,34 @@ body.has-nav .wrap{padding-bottom:calc(env(safe-area-inset-bottom) + 100px)}
 #v-run.phase-effort .nextbanner{color:var(--text-dim-effort)}
 #v-run.phase-rest .nextbanner{background:rgba(20,224,180,.12);color:var(--rest);font-size:14px;font-weight:900}
 
-.ctrl{display:flex;gap:12px;align-items:center;justify-content:center}
-.ctrl button{font:inherit;cursor:pointer;border:1px solid var(--line-2);background:none;color:var(--text);
-  border-radius:var(--rp);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}
-.ctrl .side{width:56px;height:56px}
-.ctrl .pause{flex:1;max-width:180px;height:68px;font-size:16px;font-weight:900;
-  border:none;background:var(--accent);color:var(--on-accent)}
-#v-run.phase-effort .ctrl .pause{background:var(--effort);color:var(--on-effort)}
-#v-run.phase-rest .ctrl .pause{background:var(--rest);color:var(--on-rest)}
+/* Action principale (valider une série) au premier plan : c'est le geste répété
+   30 fois par séance. Pause / passer / stop passent en second rang. */
+.runctrl{display:flex;flex-direction:column;gap:10px}
+.primary{width:100%;height:68px;border:none;border-radius:var(--rp);font:inherit;
+  font-size:16px;font-weight:900;letter-spacing:.03em;cursor:pointer;
+  background:var(--accent);color:var(--on-accent)}
+#v-run.phase-effort .primary{background:var(--effort);color:var(--on-effort)}
+#v-run.phase-rest .primary{background:var(--rest);color:var(--on-rest)}
+.ctrl{display:flex;gap:10px}
+.ctrl button{flex:1;height:46px;font:inherit;cursor:pointer;border:1px solid var(--line-2);
+  background:none;color:var(--text-dim);border-radius:var(--rp);font-size:11px;font-weight:800;
+  display:flex;align-items:center;justify-content:center}
+.ctrl button:active{color:var(--text);border-color:var(--text-dim)}
 
 /* --- bilan --- */
+/* Récap éditable : corriger après coup ce qu'on a mal saisi en plein effort. */
+.recapEx{border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;margin-bottom:8px}
+.recapHead{display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer}
+.recapHead .nm{color:var(--text);font-weight:800;font-size:13px;min-width:0}
+.recapHead .sum{color:var(--text-dim);font-size:11px;font-weight:700;flex:none}
+.recapRow{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+.recapRow .lab{color:var(--text-dim);font-size:11px;font-weight:800;width:26px;flex:none}
+.recapRow .stepper{gap:6px;padding:0;flex:1}
+.recapRow .stepval{font-size:14px}
+.recapDel{flex:none;width:26px;height:26px;border-radius:var(--rp);border:1px solid var(--line-2);
+  background:none;color:var(--text-dim);font:inherit;font-size:12px;cursor:pointer}
+.recapAdd{margin-top:8px;width:100%;padding:8px;border:1px dashed var(--line-2);background:none;
+  color:var(--text-dim);border-radius:var(--r);font:inherit;font-size:11px;font-weight:800;cursor:pointer}
 .rpe-grid{display:flex;gap:5px}
 .rpe-cell{flex:1;height:40px;border-radius:6px;border:1px solid var(--line-2);background:none;
   display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:12px;
@@ -222,10 +240,13 @@ nav.tabs button.on{color:var(--accent)}
       <div class="setlog hide" id="setlog"></div>
     </div>
     <div class="nextbanner" id="next"></div>
-    <div class="ctrl">
-      <button class="side" id="abort">STOP</button>
-      <button class="pause" id="pause">⏸ PAUSE</button>
-      <button class="side" id="doneSet">SKIP</button>
+    <div class="runctrl">
+      <button class="primary" id="doneSet">SÉRIE FAITE</button>
+      <div class="ctrl">
+        <button id="pause">⏸ PAUSE</button>
+        <button id="skipEx">PASSER</button>
+        <button id="abort">STOP</button>
+      </div>
     </div>
   </div>
 
@@ -234,6 +255,10 @@ nav.tabs button.on{color:var(--accent)}
     <div>
       <div class="h">BILAN DE SÉANCE</div>
       <div class="meta" id="bilanMeta" style="margin-top:4px"></div>
+    </div>
+    <div>
+      <div class="meta" style="color:var(--text);margin-bottom:10px">SÉRIES RÉALISÉES</div>
+      <div id="recapList"></div>
     </div>
     <div>
       <div class="meta" style="color:var(--text);margin-bottom:10px">EFFORT RESSENTI (RPE)</div>
@@ -294,7 +319,13 @@ nav.tabs button.on{color:var(--accent)}
         <b>Stabilisateurs de hanche</b> — moyen fessier, adducteurs : ce qui empêche le genou de partir vers l'intérieur sur un appui instable, particulièrement utile en trail.</p>
       </div>
       <div class="card">
-        <p><b>Le déroulé du chrono.</b> 20 secondes de préparation (pose le téléphone, mets-toi en place) → 5 minutes d'échauffement chronométré → puis les exercices. Tu peux passer une étape en avance avec SKIP. Pendant le repos, le décompte bipe de plus en plus fort dans les 5 dernières secondes pour te prévenir sans regarder l'écran.</p>
+        <p><b>Le déroulé du chrono.</b> 20 secondes de préparation (pose le téléphone, mets-toi en place) → 5 minutes d'échauffement chronométré → puis les exercices. Pendant le repos, le décompte bipe de plus en plus fort dans les 5 dernières secondes pour te prévenir sans regarder l'écran.</p>
+      </div>
+      <div class="card">
+        <p><b>Les boutons du chrono.</b> Le gros bouton est ton geste principal : <b>SÉRIE FAITE</b> valide la série que tu viens de terminer (avec le poids et les reps affichés) et lance le repos. Pendant le repos il devient <b>PASSER LE REPOS</b> si tu es déjà prêt — ça ne compte pas de série en plus. En dessous : <b>PAUSE</b> gèle tout, <b>PASSER</b> saute l'exercice en cours et toutes ses séries restantes, <b>STOP</b> arrête la séance (avec confirmation).</p>
+      </div>
+      <div class="card">
+        <p><b>Corriger après coup.</b> Sur le bilan, la section <b>Séries réalisées</b> liste tout ce que tu as logué, regroupé par exercice. Tape sur un exercice pour l'ouvrir et corriger le poids ou les reps de chaque série, en supprimer une, ou en ajouter. Utile quand on s'est trompé de stepper en plein effort — et important, parce que c'est cette donnée qui déclenche ensuite la suggestion de monter en charge.</p>
       </div>
       <div class="card">
         <p><b>Les séances alternent LOURD et VOLUME.</b> Une séance sur deux, l'app baisse les répétitions et allonge les repos (lourd), puis l'inverse la fois suivante (volume). Varier le stimulus plutôt que répéter la même séance donne de meilleurs résultats à volume égal, et ça laisse des jours plus légers pour tes jambes avant une sortie.</p>
@@ -936,7 +967,6 @@ function sets(reps){const m=reps.match(/^(\d+) ×/);return m?+m[1]:3}
 function startRun(){
   ensureAudio();
   document.getElementById('pause').textContent='⏸ PAUSE';
-  document.getElementById('doneSet').textContent='SKIP';
   run={mode:wod.mode,stage:'prep',t:PREP_SECONDS,paused:false};
   show('run');keepAwake(true);
   clearInterval(run.iv);run.iv=setInterval(tick,1000);paintStage();
@@ -958,6 +988,7 @@ function advanceStage(){
   else enterMain();
 }
 function paintStage(){
+  paintPrimary();
   document.getElementById('setlog').innerHTML='';
   document.getElementById('setlog').classList.add('hide');
   const t=Math.max(0,run.t),m=String(Math.floor(t/60)).padStart(2,'0'),s=String(t%60).padStart(2,'0');
@@ -1007,6 +1038,7 @@ function paintClock(){
   document.getElementById('phasePill').className='pill '+(run.rest?'rest':'effort');
   document.getElementById('phasePill').textContent=run.rest?'REPOS':'EFFORT';
   setPhase(run.rest?'rest':'effort');
+  paintPrimary();
 }
 function paintRun(){
   const step=curStep(),e=curEx();
@@ -1067,6 +1099,7 @@ function vo2Advance(){
   return 'work';
 }
 function paintVo2Run(){
+  paintPrimary();
   const stations=wod.circuit.stations,st=stations[run.station];
   const t=Math.max(0,run.t),m=String(Math.floor(t/60)).padStart(2,'0'),s=String(t%60).padStart(2,'0');
   document.getElementById('clock').textContent=m+':'+s;
@@ -1088,9 +1121,9 @@ function endRun(){
   document.getElementById('painList').innerHTML=
     '<button class="chip" data-p="aucune" aria-pressed="true">Aucune</button>'+
     wod.ex.map((e,i)=>`<button class="chip" data-p="${i}" aria-pressed="false">${e.n}</button>`).join('');
-  document.getElementById('bilanMeta').textContent=
-    `${wod.mode==='vo2'?'VO2max':'Force'} · ${S.dur} min · ${wod.ex.length} exercices complétés`+
-    (run.log&&run.log.length?` · ${run.log.length} séries loguées`:'');
+  openRecap=-1;
+  document.getElementById('bilanMeta').textContent=bilanMetaText();
+  paintRecap();
   paintRPE();
   show('end');
 }
@@ -1098,6 +1131,72 @@ const RPETXT={1:"Aucun effort.",2:"Très très facile.",3:"Très facile.",4:"Fac
 5:"Confortable.",6:"Confortable, marge confortable.",7:"Bon niveau de travail, 2–3 reps en réserve.",
 8:"Difficile, 1–2 reps en réserve. C'est la limite haute.",9:"Trop dur pour du travail régulier — réduis.",
 10:"À l'échec. À éviter sur ces mouvements."};
+/* ---------- récap éditable du bilan ----------
+   Saisir un poids au stepper en plein effort, essoufflé, ça se trompe. Ici on
+   relit et on corrige avant d'enregistrer : c'est cette donnée qui alimente
+   ensuite la suggestion de montée en charge, autant qu'elle soit juste. */
+let openRecap=-1;
+function paintRecap(){
+  const el=document.getElementById('recapList');
+  const log=(run&&run.log)||[];
+  if(!log.length){
+    el.innerHTML='<p class="rpetxt">Aucune série loguée (séance VO2max ou arrêtée en cours).</p>';
+    return;
+  }
+  const groups=[];
+  log.forEach((l,idx)=>{
+    let g=groups.find(x=>x.name===l.name);
+    if(!g){ g={name:l.name,items:[]}; groups.push(g); }
+    g.items.push({...l,idx});
+  });
+  el.innerHTML=groups.map((g,gi)=>{
+    const w=g.items[0].weight,r=g.items[0].reps;
+    const sameW=g.items.every(i=>i.weight===w),sameR=g.items.every(i=>i.reps===r);
+    const sum=`${g.items.length} × ${sameR?r:'…'} rep${(sameR&&r===1)?'':'s'}`+
+      (w!=null?` · ${sameW?w+'kg':'…'}`:'');
+    const open=openRecap===gi;
+    return `<div class="recapEx">
+      <div class="recapHead" data-recap="${gi}">
+        <span class="nm">${g.name}</span>
+        <span class="sum">${sum} ${open?'▴':'▾'}</span>
+      </div>
+      ${open?g.items.map((it,si)=>`<div class="recapRow">
+        <span class="lab">S${si+1}</span>
+        ${it.weight!=null?`<div class="stepper">
+          <button class="step sm" data-rec="w:-1:${it.idx}">−</button>
+          <span class="stepval sm">${it.weight}<span class="unit">kg</span></span>
+          <button class="step sm" data-rec="w:1:${it.idx}">+</button></div>`:''}
+        <div class="stepper">
+          <button class="step sm" data-rec="r:-1:${it.idx}">−</button>
+          <span class="stepval sm">${it.reps==null?'—':it.reps}<span class="unit">rep</span></span>
+          <button class="step sm" data-rec="r:1:${it.idx}">+</button></div>
+        <button class="recapDel" data-rec="x:0:${it.idx}" aria-label="Supprimer cette série">✕</button>
+      </div>`).join('')+
+      `<button class="recapAdd" data-rec="a:0:${g.items[g.items.length-1].idx}">+ ajouter une série</button>`:''}
+    </div>`;
+  }).join('');
+}
+document.getElementById('recapList').onclick=e=>{
+  const head=e.target.closest('[data-recap]');
+  if(head){ const gi=+head.dataset.recap; openRecap=openRecap===gi?-1:gi; paintRecap(); return; }
+  const b=e.target.closest('[data-rec]');
+  if(!b) return;
+  const[kind,delta,idxStr]=b.dataset.rec.split(':');
+  const idx=+idxStr,entry=run.log[idx];
+  if(!entry) return;
+  if(kind==='w') entry.weight=Math.max(0,(entry.weight||0)+ +delta*2);
+  else if(kind==='r') entry.reps=Math.max(0,(entry.reps||0)+ +delta);
+  else if(kind==='x') run.log.splice(idx,1);
+  else if(kind==='a') run.log.splice(idx+1,0,{...entry});
+  if(entry.weight!=null&&kind==='w') S.weights[entry.name]=entry.weight;
+  paintRecap();
+  document.getElementById('bilanMeta').textContent=bilanMetaText();
+};
+function bilanMetaText(){
+  const n=((run&&run.log)||[]).length;
+  return `${wod.mode==='vo2'?'VO2max':'Force'} · ${S.dur} min · ${wod.ex.length} exercices`+
+    (n?` · ${n} série${n>1?'s':''}`:'');
+}
 function paintRPE(){
   document.getElementById('rpeGrid').innerHTML=Array.from({length:10},(_,i)=>i+1).map(n=>
     `<button class="rpe-cell ${n===selectedRPE?'on':''}" data-rpe="${n}">${n}</button>`).join('');
@@ -1172,7 +1271,10 @@ document.getElementById('setlog').onclick=e=>{
   paintSetLog(curEx());
 };
 document.getElementById('start').onclick=startRun;
-document.getElementById('doneSet').onclick=()=>{
+// Le bouton principal change de rôle selon la phase — il ne doit jamais valider
+// une série pendant un repos (c'était le cas avant : ça en loguait une en double).
+function primaryAction(){
+  if(!run) return;
   if(run.stage==='prep'||run.stage==='warmup'){ advanceStage(); return; }
   if(run.stage==='circuit'){
     const phase=vo2Advance();
@@ -1180,7 +1282,36 @@ document.getElementById('doneSet').onclick=()=>{
     beep(phase);flashClock();paintVo2Run();
     return;
   }
+  if(run.rest){ run.rest=false; run.t=0; beep('work'); flashClock(); paintRun(); return; }
   nextSet();
+}
+function primaryLabel(){
+  if(!run) return 'SÉRIE FAITE';
+  if(run.stage==='prep') return 'COMMENCER L\'ÉCHAUFFEMENT';
+  if(run.stage==='warmup') return 'ÉCHAUFFEMENT FINI';
+  if(run.stage==='circuit') return run.phase==='rest'?'PASSER LE REPOS':'STATION FAITE';
+  return run.rest?'PASSER LE REPOS':'SÉRIE FAITE';
+}
+function paintPrimary(){ document.getElementById('doneSet').textContent=primaryLabel(); }
+// Passe tout ce qui reste de l'exercice en cours. En superset ses séries sont
+// entrelacées avec celles du partenaire : on filtre, on ne coupe pas un bloc.
+function skipExercise(){
+  if(!run||run.stage!=='main') return;
+  const i=curStep().i;
+  wod.seq=wod.seq.slice(0,run.step).concat(wod.seq.slice(run.step+1).filter(s=>s.i!==i));
+  if(run.step>=wod.seq.length) return endRun();
+  run.rest=false; run.t=0; paintRun();
+}
+document.getElementById('doneSet').onclick=primaryAction;
+document.getElementById('skipEx').onclick=()=>{
+  if(!run) return;
+  if(run.stage==='prep'||run.stage==='warmup') return advanceStage();
+  if(run.stage==='circuit'){
+    const phase=vo2Advance();
+    if(phase!=='end'){ beep(phase);flashClock();paintVo2Run(); }
+    return;
+  }
+  skipExercise();
 };
 document.getElementById('pause').onclick=e=>{run.paused=!run.paused;
   e.target.textContent=run.paused?'▶ REPRENDRE':'⏸ PAUSE'};
