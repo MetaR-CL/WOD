@@ -261,7 +261,12 @@ nav.tabs button.on{color:var(--accent)}
       <div class="meta" id="histMeta" style="margin-top:4px"></div>
     </div>
     <div class="list" id="histList"></div>
-    <button class="btn ghost" id="export">Exporter mes données</button>
+    <div>
+      <button class="btn ghost" id="export">Exporter mes données</button>
+      <button class="btn ghost wide" id="importBtn">Importer / fusionner</button>
+      <input type="file" id="importFile" accept="application/json,.json" class="hide">
+      <p class="rpetxt" id="importMsg" style="margin-top:10px"></p>
+    </div>
   </div>
 
   <!-- AIDE -->
@@ -316,7 +321,10 @@ nav.tabs button.on{color:var(--accent)}
         <p><b>VO2max.</b> Un circuit de 5 exercices cardio-intenses au poids du corps et au kettlebell, tirés au sort, enchaînés en alternant effort et repos chronométrés sur plusieurs tours. Le chrono avance tout seul, tu suis. Pousse vraiment fort sur chaque bloc d'effort (~90% de ta fréquence cardiaque max) — c'est cette intensité proche du maximum qui fait progresser le VO2max, pas un rythme confortable.</p>
       </div>
       <div class="card">
-        <p><b>Historique et export.</b> Chaque séance enregistrée apparaît dans l'onglet Historique. Le bouton "Exporter mes données" télécharge tout (séances, poids, niveaux) dans un fichier — utile comme sauvegarde avant de changer de téléphone.</p>
+        <p><b>Historique et export.</b> Chaque séance enregistrée apparaît dans l'onglet Historique. Le bouton "Exporter mes données" télécharge tout (séances, poids, niveaux) dans un fichier daté — utile comme sauvegarde avant de changer de téléphone.</p>
+      </div>
+      <div class="card">
+        <p><b>Utiliser deux appareils (iPhone + iPad).</b> Les données restent sur chaque appareil, il n'y a pas de synchro automatique. Si tu fais une séance sur l'iPad : appuie sur <b>Exporter mes données</b> là-bas, puis sur l'iPhone sur <b>Importer / fusionner</b> et choisis le fichier. Les deux historiques sont réunis, jamais écrasés : une séance déjà présente n'est pas dupliquée, et tes charges sont recalculées sur l'ensemble. Tu peux importer dans les deux sens, autant de fois que tu veux.</p>
       </div>
     </div>
   </div>
@@ -1133,7 +1141,12 @@ function paintHist(){
        <span class="badge ${h.mode==='vo2'?'vo2':'force'}">${h.mode==='vo2'?'VO2MAX':'FORCE'}</span>
        <div class="body">
          <div class="d">${new Date(h.d).toLocaleDateString('fr-CH',{day:'2-digit',month:'short'})}</div>
-         <div class="m" style="${h.pain&&h.pain.length?'color:var(--alert)':''}">${h.dur} min · RPE ${h.rpe}${h.sets&&h.sets.length?' · '+h.sets.length+' séries':''}${h.pain&&h.pain.length?' · douleur':''}</div>
+         <div class="m" style="${h.pain&&h.pain.length?'color:var(--alert)':''}">${[
+           h.dur?h.dur+' min':null,
+           h.rpe?'RPE '+h.rpe:null,
+           h.sets&&h.sets.length?h.sets.length+' série'+(h.sets.length>1?'s':''):null,
+           h.pain&&h.pain.length?'douleur':null
+         ].filter(Boolean).join(' · ')}</div>
        </div>
      </div>`).join('')
    :'<div class="card"><p>Aucune séance enregistrée. Lance-en une, elle apparaîtra ici.</p></div>';
@@ -1196,22 +1209,77 @@ document.getElementById('lvlList').onclick=e=>{const b=e.target.closest('[data-l
 document.getElementById('export').onclick=()=>{
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));
-  a.download='seances.json';a.click()};
+  // Daté : deux exports depuis deux appareils ne s'écrasent pas dans les Fichiers.
+  a.download='seances-'+new Date().toISOString().slice(0,10)+'.json';a.click()};
+
+/* ---------- fusion de deux appareils ----------
+   Rien n'est écrasé : les séances des deux côtés sont réunies et dédupliquées par
+   horodatage, et les charges sont recalculées depuis la timeline fusionnée. Les
+   réglages (paliers, durée) viennent du côté qui a la séance la plus récente. */
+function mergeState(a,b){
+  const seen=new Set(),history=[];
+  [...(a.history||[]),...(b.history||[])].sort((x,y)=>x.d-y.d).forEach(h=>{
+    if(!h||seen.has(h.d))return;      // même horodatage = même séance déjà importée
+    seen.add(h.d);history.push(h);
+  });
+  const weights={...(a.weights||{}),...(b.weights||{})};
+  history.forEach(h=>(h.sets||[]).forEach(s=>{ if(s&&s.weight!=null) weights[s.name]=s.weight; }));
+  const last=s=>(s.history||[]).reduce((m,h)=>Math.max(m,h.d||0),0);
+  const fresh=last(b)>=last(a)?b:a, stale=fresh===b?a:b;
+  return {...stale,...fresh,history,weights,levels:{...(stale.levels||{}),...(fresh.levels||{})}};
+}
+document.getElementById('importBtn').onclick=()=>document.getElementById('importFile').click();
+document.getElementById('importFile').onchange=ev=>{
+  const file=ev.target.files&&ev.target.files[0];
+  const msg=document.getElementById('importMsg');
+  ev.target.value='';                 // permet de réimporter le même fichier ensuite
+  if(!file)return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    let inc;
+    try{ inc=JSON.parse(rd.result); }catch(e){ inc=null; }
+    if(!inc||typeof inc!=='object'||(inc.history&&!Array.isArray(inc.history))){
+      msg.style.color='var(--alert)';
+      msg.textContent="Fichier illisible. Choisis un export de l'app (seances-….json).";
+      return;
+    }
+    const before=S.history.length;
+    S=mergeState(S,inc);
+    normalizeState();
+    save();paintHist();
+    const added=S.history.length-before;
+    msg.style.color='var(--text-dim)';
+    msg.textContent=added
+      ? `${added} séance${added>1?'s':''} ajoutée${added>1?'s':''} · ${S.history.length} au total.`
+      : `Rien de nouveau : ces séances étaient déjà là (${S.history.length} au total).`;
+  };
+  rd.onerror=()=>{ msg.style.color='var(--alert)';msg.textContent='Lecture du fichier impossible.'; };
+  rd.readAsText(file);
+};
 document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>{
   const v=b.dataset.v;if(v==='home'){paintHome();show('home')}else show(v)});
 
 function save(){store.set('wodapp',S)}
-(()=>{
-  const s=store.get('wodapp');
-  if(s)S={...S,...s};
+// Remet l'état d'aplomb, qu'il vienne du stockage local ou d'un import : les deux
+// peuvent dater d'une version antérieure de l'app.
+function normalizeState(){
+  if(!S.levels||typeof S.levels!=='object')S.levels={};
   // Un pattern ajouté après coup (ex: "hip") manque dans les données déjà sauvegardées
   // sur l'appareil — sans ça, S.levels[p.id] est undefined et l'écran Niveaux plante.
   PATTERNS.forEach(p=>{ if(S.levels[p.id]===undefined) S.levels[p.id]=1; });
+  if(!Array.isArray(S.history))S.history=[];
+  if(!S.weights||typeof S.weights!=='object')S.weights={};
+  if(!MODES.some(m=>m.id===S.mode))S.mode='force';
   // Les durées proposées ont changé : ramène une ancienne valeur sur la plus proche.
   if(!DURS.some(d=>d.v===S.dur)){
     S.dur=DURS.reduce((a,b)=>Math.abs(b.v-S.dur)<Math.abs(a.v-S.dur)?b:a).v;
   }
   S.equip=ALL_EQUIP;
+}
+(()=>{
+  const s=store.get('wodapp');
+  if(s)S={...S,...s};
+  normalizeState();
   paintHome();show('home');
 })();
 
