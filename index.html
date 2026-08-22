@@ -478,19 +478,23 @@ pushV:[
 pushH:[
  [
   {n:"Pompe mains surélevées",eq:['rien'],reps:"3 × 12",cue:"Mains sur une table ou une chaise. Corps en planche, bassin ni haut ni bas."},
-  {n:"Développé kettlebell au sol",eq:['kb'],reps:"3 × 10",cue:"Allongé au sol, coudes à 45°. Bon départ si les pompes sont encore inconfortables aux poignets."}
+  {n:"Développé kettlebell au sol",eq:['kb'],reps:"3 × 10",cue:"Allongé au sol, coudes à 45°. Bon départ si les pompes sont encore inconfortables aux poignets."},
+  {n:"Dips sur chaises, jambes fléchies",eq:['rien'],reps:"3 × 8",cue:"Deux chaises stables face à face, genoux fléchis, pieds au sol pour t'assister. Descends jusqu'à ~90° de coude, remonte sans à-coup."}
  ],
  [
   {n:"Pompe au sol",eq:['rien'],reps:"3 × 10–15",cue:"Descente en 2–3 secondes, poitrine près du sol. Coudes à ~45°, pas écartés à 90°."},
-  {n:"Pompe déclinée, pieds surélevés",eq:['rien'],reps:"3 × 10",cue:"Pieds sur une chaise, mains au sol. Plus les pieds sont hauts, plus le haut des pecs et les épaules travaillent."}
+  {n:"Pompe déclinée, pieds surélevés",eq:['rien'],reps:"3 × 10",cue:"Pieds sur une chaise, mains au sol. Plus les pieds sont hauts, plus le haut des pecs et les épaules travaillent."},
+  {n:"Dips complets",eq:['anneaux','barre'],reps:"3 × 8",cue:"Buste légèrement penché en avant pour cibler la poitrine. Descends jusqu'à l'épaule à hauteur du coude, pas plus bas si ça tire à l'avant de l'épaule."}
  ],
  [
   {n:"Pompe aux anneaux, pieds au sol",eq:['anneaux'],reps:"3 × 8–12",cue:"Anneaux bas. Tourne les paumes vers l'avant en haut. Apprivoise l'instabilité avant de charger."},
-  {n:"Écarté couché élastique",eq:['elastique'],reps:"3 × 12",cue:"Élastique ancré derrière toi. Bras presque tendus, ramène les mains devant la poitrine sans casser les coudes."}
+  {n:"Écarté couché élastique",eq:['elastique'],reps:"3 × 12",cue:"Élastique ancré derrière toi. Bras presque tendus, ramène les mains devant la poitrine sans casser les coudes."},
+  {n:"Dips tempo lent",eq:['anneaux','barre'],reps:"3 × 6",cue:"4 secondes de descente, contrôle total. Le tempo remplace la charge pour augmenter la difficulté sans matériel de plus."}
  ],
  [
   {n:"Pompe aux anneaux, pieds surélevés",eq:['anneaux'],reps:"3 × 8",cue:"C'est ici que le haut des pecs travaille. Épaules plus basses que les pieds, gainage constant."},
-  {n:"Pompe archer",eq:['rien'],reps:"3 × 6 / côté",cue:"Un bras tendu sur le côté, tout le poids sur l'autre. Étape avant la pompe à un bras."}
+  {n:"Pompe archer",eq:['rien'],reps:"3 × 6 / côté",cue:"Un bras tendu sur le côté, tout le poids sur l'autre. Étape avant la pompe à un bras."},
+  {n:"Dips lestés (kettlebell)",eq:['anneaux','barre'],reps:"3 × 6",cue:"KB tenu entre les pieds ou suspendu à la ceinture. Amplitude complète — n'ajoute du poids que si tu passes déjà 6 reps propres sans lest."}
  ]
 ],
 pullV:[
@@ -569,7 +573,6 @@ hip:[
  ]
 ]
 };
-const ACCESS={n:"Dips",eq:['anneaux','barre'],reps:"2 × 8",cue:"En accessoire, pas en poussée principale. Amplitude où tu ne sens rien tirer dans l'épaule."};
 const WARM={n:"Échauffement",reps:"5 min",cue:"Cercles d'épaules, cat-cow, fentes avec rotation, 20 swings légers. Ne saute pas cette étape."};
 
 /* ---------- circuit VO2max : poids du corps + kettlebell uniquement ---------- */
@@ -756,10 +759,6 @@ function generateForce(){
       e.reps=e.reps.replace(/× (\d+)/,(m,n)=>'× '+Math.max(3,Math.round(+n*cfg.repMul)));
     }
   });
-  if(S.dur===45&&ACCESS.eq.some(q=>S.equip.includes(q))){
-    const a={...ACCESS,lvl:null,pat:null};
-    a.rest=REST_BY_TYPE.modere; a.sets=sets(a.reps); ex.push(a);
-  }
   fitToBudget(ex,S.dur);
   wod={mode:'force',kind,ex,seq:buildSequence(ex),rest:90};
   paintWod();
