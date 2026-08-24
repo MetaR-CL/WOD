@@ -28,6 +28,8 @@
   --rest:#14E0B4;
   --on-rest:#0A1917;
   --alert:#FF3B30;
+  --mobility:#8AB4FF;
+  --on-mobility:#0B1830;
   --line:rgba(242,238,228,.12);
   --line-2:rgba(242,238,228,.2);
   --r:10px;
@@ -203,6 +205,7 @@ body.has-nav .wrap{padding-bottom:calc(env(safe-area-inset-bottom) + 100px)}
 .badge{flex:none;font-size:10px;font-weight:900;border-radius:var(--rp);padding:4px 10px;letter-spacing:.02em}
 .badge.force{background:var(--effort);color:var(--on-effort)}
 .badge.vo2{background:var(--rest);color:var(--on-rest)}
+.badge.mobility{background:var(--mobility);color:var(--on-mobility)}
 
 .hide{display:none!important}
 nav.tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);
@@ -321,7 +324,7 @@ nav.tabs button.on{color:var(--accent)}
         <p><b>L'idée générale.</b> Tout reste sur ton téléphone, rien n'est envoyé nulle part. Deux types de séance : <b>Force</b> (renfo par paliers de progression) et <b>VO2max</b> (circuit cardio intense). Choisis un mode et une durée sur l'accueil, puis tape "Générer".</p>
       </div>
       <div class="card">
-        <p><b>La liste d'exercices.</b> Avant de commencer, tu peux échanger un exercice contre une variante du même mouvement avec le bouton ⇄. "Regénérer" retire toute la séance et en propose une nouvelle. L'étiquette au-dessus de chaque nom d'exercice indique son pattern — c'est ce qui te dit quel groupe musculaire il travaille.</p>
+        <p><b>La liste d'exercices.</b> Avant de commencer, le bouton ⇄ ouvre la liste complète des variantes de ce mouvement, tous paliers confondus — tape directement celle que tu veux faire, ce n'est plus un tirage au sort. "Regénérer" retire toute la séance et en propose une nouvelle. L'étiquette au-dessus de chaque nom d'exercice indique son pattern — c'est ce qui te dit quel groupe musculaire il travaille.</p>
       </div>
       <div class="card">
         <p><b>Les 8 patterns, et ce qu'ils travaillent.</b> Une séance Force en contient toujours un de chaque — jamais 0, jamais 2 — donc rien n'est oublié d'une séance à l'autre, seul l'exercice précis tourne.</p>
@@ -365,7 +368,7 @@ nav.tabs button.on{color:var(--accent)}
         <p><b>Logger tes séries.</b> Pendant l'effort d'un exercice au kettlebell, un petit réglage poids + reps apparaît sous le chrono, déjà pré-rempli au plan prévu. Si tu suis le programme tel quel, tu n'as rien à toucher — ajuste seulement si tu as fait plus lourd ou plus/moins de reps. Ça sert à suivre ta vraie progression, pas juste ce qui était prévu.</p>
       </div>
       <div class="card">
-        <p><b>Paliers (onglet Niveaux).</b> Chaque mouvement a 4 paliers de difficulté. Deux séances propres de suite (RPE ≤ 6, sans douleur) sur un pattern → l'accueil te propose de monter d'un cran, à valider toi-même dans Niveaux avec les boutons − / +. À l'inverse, si tu signales une douleur sur un exercice au bilan, son palier redescend automatiquement.</p>
+        <p><b>Paliers et poids (onglet Niveaux).</b> Chaque mouvement a 4 paliers de difficulté. Deux séances propres de suite (RPE ≤ 6, sans douleur) sur un pattern → l'accueil te propose de monter d'un cran, à valider toi-même dans Niveaux avec les boutons − / +. À l'inverse, si tu signales une douleur sur un exercice au bilan, son palier redescend automatiquement. Sous chaque pattern, tous ses exercices au kettlebell sont aussi listés avec un poids réglable : fixe-le à l'avance plutôt que d'attendre qu'une séance te le propose par défaut.</p>
       </div>
       <div class="card">
         <p><b>Effort ressenti (RPE).</b> À la fin de chaque séance, une note de 1 (aucun effort) à 10 (à l'échec). Vise 7-8 pour une séance de travail normale — c'est aussi ce qui alimente les signaux de progression et de fatigue.</p>
@@ -375,6 +378,9 @@ nav.tabs button.on{color:var(--accent)}
       </div>
       <div class="card">
         <p><b>VO2max.</b> Un circuit de 5 exercices cardio-intenses au poids du corps et au kettlebell, tirés au sort, enchaînés en alternant effort et repos chronométrés sur plusieurs tours. Le chrono avance tout seul, tu suis. Pousse vraiment fort sur chaque bloc d'effort (~90% de ta fréquence cardiaque max) — c'est cette intensité proche du maximum qui fait progresser le VO2max, pas un rythme confortable.</p>
+      </div>
+      <div class="card">
+        <p><b>Mobilité.</b> Une séance en deux temps : d'abord des mouvements dynamiques (prépare l'articulation, ne coûte rien en puissance), puis des étirements statiques tenus (hanche, ischio, mollet, piriforme, quadriceps — les zones les plus liées aux douleurs de coureur). S'étirer en statique juste avant l'effort réduit la puissance à court terme sans bénéfice prouvé contre les blessures, d'où cet ordre. Avant une sortie, fais juste les premières minutes (le bloc dynamique) ; le statique complet a plutôt sa place après une séance, après une course, ou seul en fin de journée.</p>
       </div>
       <div class="card">
         <p><b>Historique et export.</b> Chaque séance enregistrée apparaît dans l'onglet Historique. Le bouton "Exporter mes données" télécharge tout (séances, poids, niveaux) dans un fichier daté — utile comme sauvegarde avant de changer de téléphone.</p>
@@ -591,31 +597,67 @@ const VO2_POOL=[
  {n:"Montées de genoux",cue:"Rythme rapide, genoux à hauteur de hanche. Les bras pompent comme à la course."}
 ];
 
+/* ---------- mobilité : dynamique d'abord (prépare le mouvement), statique
+   ensuite (récupération). L'ordre n'est pas arbitraire : étirer en statique
+   avant l'effort réduit la puissance à court terme et n'a pas d'effet préventif
+   clair sur les blessures, alors que la mobilité dynamique prépare vraiment
+   l'articulation. Le statique garde sa valeur en fin de séance ou seul, sur
+   les zones les plus liées aux douleurs de coureur : hanche, ischio, mollet,
+   piriforme, quadriceps. */
+const MOBIL_DYNAMIC=[
+ {n:"World's Greatest Stretch",dur:45,phase:'dynamic',cue:"Grand pas en fente, main au sol, rotation du buste vers le ciel côté jambe avant. Alterne les côtés sans t'arrêter."},
+ {n:"Cercles de hanche à 4 pattes",dur:40,phase:'dynamic',cue:"À quatre pattes, dessine de grands cercles avec un genou levé sur le côté. Change de côté à la moitié du temps."},
+ {n:"Balancements de jambe avant-arrière",dur:40,phase:'dynamic',cue:"Appui sur un mur ou une chaise, balance une jambe tendue d'avant en arrière, amplitude croissante. Change de côté à la moitié."},
+ {n:"Ouverture de hanche débout (leg swings latéraux)",dur:40,phase:'dynamic',cue:"Balance une jambe de gauche à droite devant toi, bassin stable. Change de côté à la moitié."},
+ {n:"Fente marchée avec rotation thoracique",dur:45,phase:'dynamic',cue:"Un pas en fente, coude vers le genou avant puis rotation du buste vers le ciel. Avance à chaque pas."},
+ {n:"Rotations et montées de cheville",dur:30,phase:'dynamic',cue:"Rotations de cheville dans chaque sens, puis montées sur pointes rapides. Prépare l'appui pour le sentier technique."},
+ {n:"Rotation thoracique à 4 pattes (thread the needle)",dur:40,phase:'dynamic',cue:"Un bras glisse sous le buste puis remonte vers le plafond, regard qui suit la main. Change de côté à la moitié."}
+];
+// 5 paires gauche/droite, dans l'ordre de priorité pour un coureur.
+const MOBIL_STATIC=[
+ {n:"Étirement fléchisseur de hanche — droite",dur:35,phase:'static',cue:"Fente basse, genou arrière au sol, bascule le bassin vers l'avant sans cambrer. La zone la plus souvent raide chez un coureur."},
+ {n:"Étirement fléchisseur de hanche — gauche",dur:35,phase:'static',cue:"Même position, côté gauche. Bascule le bassin vers l'avant sans cambrer le bas du dos."},
+ {n:"Étirement ischio-jambier debout — droite",dur:35,phase:'static',cue:"Talon au sol devant toi, jambe tendue, buste qui plie depuis la hanche, dos plat."},
+ {n:"Étirement ischio-jambier debout — gauche",dur:35,phase:'static',cue:"Même étirement, côté gauche. Dos plat, pas d'arrondi du bas du dos."},
+ {n:"Étirement du mollet contre un mur — droite",dur:30,phase:'static',cue:"Jambe arrière tendue, talon au sol, bascule le bassin vers le mur. Zone clé pour la propulsion en course."},
+ {n:"Étirement du mollet contre un mur — gauche",dur:30,phase:'static',cue:"Même étirement, côté gauche, talon bien au sol."},
+ {n:"Étirement pigeon (fessier / piriforme) — droite",dur:40,phase:'static',cue:"Genou avant fléchi vers l'extérieur, jambe arrière tendue, buste qui descend vers l'avant. Très lié aux douleurs de bandelette ilio-tibiale."},
+ {n:"Étirement pigeon (fessier / piriforme) — gauche",dur:40,phase:'static',cue:"Même position, côté gauche. Reste sur les fessiers, pas les genoux."},
+ {n:"Étirement quadriceps debout — droite",dur:30,phase:'static',cue:"Talon vers la fesse, genoux collés, bassin poussé légèrement vers l'avant. Appui sur un mur si l'équilibre manque."},
+ {n:"Étirement quadriceps debout — gauche",dur:30,phase:'static',cue:"Même étirement, côté gauche. Genoux collés du début à la fin."}
+];
+const MOBIL_CFG={8:{dyn:5,pairs:1},12:{dyn:7,pairs:3},16:{dyn:7,pairs:5}};
+
 const ALL_EQUIP=['kb','anneaux','barre','elastique','rien'];
 const DURS=[{v:30,l:'30'},{v:40,l:'40'},{v:50,l:'50'}];
-const MODES=[{id:'force',l:'FORCE',sub:'Paliers'},{id:'vo2',l:'VO2MAX',sub:'Cardio'}];
+const MOBIL_DURS=[{v:8,l:'8'},{v:12,l:'12'},{v:16,l:'16'}];
+const MODES=[{id:'force',l:'FORCE',sub:'Paliers'},{id:'vo2',l:'VO2MAX',sub:'Cardio'},{id:'mobility',l:'MOBILITÉ',sub:'Souplesse'}];
 const VO2_WORK=40, VO2_REST=20;
 const VO2_ROUNDS={30:5,40:7,50:9};
+const MOBIL_TRANSITION=6;
 const PREP_SECONDS=20, WARMUP_SECONDS=300;
 const DEFAULT_WEIGHT=16; // kg, point de départ neutre pour un exercice jamais loggé
 
 /* ---------- état ---------- */
 // Tout le matériel est toujours considéré comme disponible : plus de sélection à faire,
 // et ça garantit qu'aucun pattern (charnière, tirage...) ne soit exclu faute d'équipement.
-let S={equip:ALL_EQUIP,dur:30,mode:'force',levels:{},history:[],weights:{}};
+let S={equip:ALL_EQUIP,dur:30,mobilDur:12,mode:'force',levels:{},history:[],weights:{}};
 PATTERNS.forEach(p=>S.levels[p.id]=1);   // index 0–3, départ palier 2
 let wod=null,run=null,selectedRPE=7,highlightIdx=-1;
 
 /* ---------- rendu accueil ---------- */
+function curDurMin(){ return wod&&wod.mode==='mobility'?S.mobilDur:(S.mode==='mobility'?S.mobilDur:S.dur); }
 function paintHome(){
   document.getElementById('mode').innerHTML=MODES.map(m=>
     `<button class="tile ${S.mode===m.id?'on':''}" data-m="${m.id}">
       <div class="nm">${m.l}</div><div class="sub">${m.sub}</div></button>`).join('');
-  const idx=DURS.findIndex(d=>d.v===S.dur);
+  const durs=S.mode==='mobility'?MOBIL_DURS:DURS;
+  const val=S.mode==='mobility'?S.mobilDur:S.dur;
+  const idx=durs.findIndex(d=>d.v===val);
   document.getElementById('durStepper').innerHTML=
     `<button class="step" id="durMinus" ${idx<=0?'disabled':''}>−</button>
-     <div class="stepval">${S.dur}<span class="unit"> min</span></div>
-     <button class="step" id="durPlus" ${idx>=DURS.length-1?'disabled':''}>+</button>`;
+     <div class="stepval">${val}<span class="unit"> min</span></div>
+     <button class="step" id="durPlus" ${idx>=durs.length-1?'disabled':''}>+</button>`;
   document.getElementById('durMinus').onclick=()=>stepDur(-1);
   document.getElementById('durPlus').onclick=()=>stepDur(1);
   const deload=S.mode==='force'?needsDeload():[];
@@ -624,12 +666,15 @@ function paintHome(){
     ? `<div class="card warn"><p><b>Fatigue qui s'accumule :</b> ${deload.join(', ')} — RPE ≥ 8 deux séances de suite. Une séance plus légère aujourd'hui vaut mieux qu'une blessure.</p></div>`
     : ready.length
     ? `<div class="card tip"><p><b>Prêt à monter d'un cran :</b> ${ready.join(', ')}. Deux séances propres à RPE ≤ 6 sans douleur. Passe au palier suivant dans l'onglet Niveaux.</p></div>`
-    : (S.mode==='vo2' ? `<div class="card warn"><p><b>VO2max :</b> circuit intense, poids du corps + kettlebell. Adapte l'intensité si besoin — la forme prime sur la vitesse.</p></div>` : '');
+    : (S.mode==='vo2' ? `<div class="card warn"><p><b>VO2max :</b> circuit intense, poids du corps + kettlebell. Adapte l'intensité si besoin — la forme prime sur la vitesse.</p></div>`
+    : S.mode==='mobility' ? `<div class="card tip"><p><b>Mobilité :</b> dynamique d'abord (prépare le mouvement), statique ensuite (récupération, hanche/ischio/mollet/piriforme). Avant une sortie, fais juste le début dynamique.</p></div>` : '');
 }
 function stepDur(delta){
-  const idx=DURS.findIndex(d=>d.v===S.dur);
-  const next=Math.max(0,Math.min(DURS.length-1,idx+delta));
-  S.dur=DURS[next].v; save(); paintHome();
+  const durs=S.mode==='mobility'?MOBIL_DURS:DURS;
+  const key=S.mode==='mobility'?'mobilDur':'dur';
+  const idx=durs.findIndex(d=>d.v===S[key]);
+  const next=Math.max(0,Math.min(durs.length-1,idx+delta));
+  S[key]=durs[next].v; save(); paintHome();
 }
 
 function readyToProgress(){
@@ -712,7 +757,7 @@ function shuffle(arr){
 function demoUrl(name){
   return 'https://www.youtube.com/results?search_query='+encodeURIComponent(name+' technique exercice');
 }
-function generate(){ highlightIdx=-1; S.mode==='vo2' ? generateVo2() : generateForce(); }
+function generate(){ highlightIdx=-1; pickerIdx=-1; S.mode==='vo2' ? generateVo2() : S.mode==='mobility' ? generateMobility() : generateForce(); }
 
 /* ---------- calibrage des séances Force ----------
    Le repos n'est plus fixe : il dépend du type de mouvement. Un exercice lourd
@@ -847,7 +892,25 @@ function pickVo2(exclude){
   const options=VO2_POOL.filter(v=>v.n!==exclude&&!inCircuit.includes(v.n));
   return options.length?{...options[Math.floor(Math.random()*options.length)]}:null;
 }
-function paintWod(){ wod.mode==='vo2' ? paintWodVo2() : paintWodForce(); }
+function generateMobility(){
+  const cfg=MOBIL_CFG[S.mobilDur]||MOBIL_CFG[12];
+  const items=[...MOBIL_DYNAMIC.slice(0,cfg.dyn),...MOBIL_STATIC.slice(0,cfg.pairs*2)];
+  wod={mode:'mobility',ex:items,circuit:{stations:items,rest:MOBIL_TRANSITION,rounds:1}};
+  paintWod();
+}
+function paintWod(){ wod.mode==='vo2' ? paintWodVo2() : wod.mode==='mobility' ? paintWodMobility() : paintWodForce(); }
+function paintWodMobility(){
+  document.getElementById('seanceTitle').textContent='SÉANCE MOBILITÉ';
+  document.getElementById('seanceMeta').textContent=S.mobilDur+' MIN';
+  document.getElementById('wodList').innerHTML=wod.ex.map((e,i)=>
+    `<div class="ex"><div class="body">
+      <div class="patname">${e.phase==='dynamic'?'Dynamique':'Étirement'}</div>
+      <div class="nm">${e.n}</div>
+      <div class="dose">${e.dur}s · ${e.cue}</div></div>
+      <div class="exActions">
+      <a class="demo" href="${demoUrl(e.n)}" target="_blank" rel="noopener" title="Voir une démo" aria-label="Voir une démo">🔎</a>
+      </div></div>`).join('');
+}
 function paintWodForce(){
   const cfg=KIND_CFG[wod.kind]||KIND_CFG.volume;
   document.getElementById('seanceTitle').textContent='SÉANCE '+cfg.label;
@@ -864,10 +927,36 @@ function paintWodForce(){
       <div class="nm">${e.n}${e.lvl?`<span class="lvl">P${e.lvl}</span>`:''}${loadUp?`<span class="lvl" style="color:var(--accent);border-color:var(--accent)">💪 charge+</span>`:''}</div>
       <div class="dose">${e.reps} · récup ${restFor(e)}s · ${e.cue}</div></div>
       <div class="exActions">
-      ${e.pat?`<button class="swap" data-swap="${i}" title="Changer d'exercice" aria-label="Changer d'exercice">⇄</button>`:''}
+      ${e.pat?`<button class="swap" data-swap="${i}" title="Choisir un exercice" aria-label="Choisir un exercice">⇄</button>`:''}
       <a class="demo" href="${demoUrl(e.n)}" target="_blank" rel="noopener" title="Voir une démo" aria-label="Voir une démo">🔎</a>
-      </div></div>`;
+      </div></div>`+(pickerIdx===i?pickerPanel(e):'');
     }).join('');
+}
+// Panel de sélection manuelle : toutes les variantes du pattern, tous paliers
+// confondus, plutôt qu'un tirage aléatoire — pour choisir précisément ce qu'on veut faire.
+let pickerIdx=-1;
+function pickerPanel(e){
+  return `<div class="card" style="margin-top:-4px;margin-bottom:2px">
+    <div class="meta" style="color:var(--text);margin-bottom:8px">CHOISIR — ${PATTERNS.find(p=>p.id===e.pat).short}</div>
+    <div class="chips" style="flex-direction:column">
+    ${LIB[e.pat].map((variants,li)=>variants.map((v,vi)=>
+      `<button class="chip" style="text-align:left" data-pick="${li}:${vi}" aria-pressed="${v.n===e.n}">P${li+1} · ${v.n}</button>`
+    ).join('')).join('')}
+    </div>
+  </div>`;
+}
+// Réapplique le format de séries/repos déjà calculé pour cet emplacement (nombre
+// de séries fixé par fitToBudget, tempo lourd/volume de la séance en cours).
+function selectVariant(i,li,vi){
+  const cur=wod.ex[i],v=LIB[cur.pat][li][vi];
+  const cfg=KIND_CFG[wod.kind]||KIND_CFG.volume;
+  const e2={...v,lvl:li+1,pat:cur.pat,sets:cur.sets};
+  e2.rest=Math.round(REST_BY_TYPE[exerciseType(e2)]*cfg.restMul/5)*5;
+  let reps=e2.reps;
+  if(wod.kind==='lourd') reps=reps.replace(/× (\d+)/,(m,n)=>'× '+Math.max(3,Math.round(+n*cfg.repMul)));
+  e2.reps=/^\d+ ×/.test(reps)?reps.replace(/^\d+ ×/,e2.sets+' ×'):e2.sets+' × '+reps;
+  wod.ex[i]=e2; wod.seq=buildSequence(wod.ex);
+  highlightIdx=i; pickerIdx=-1; paintWod();
 }
 function paintWodVo2(){
   const c=wod.circuit;
@@ -1024,9 +1113,10 @@ function startRun(){
   show('run');keepAwake(true);
   clearInterval(run.iv);run.iv=setInterval(tick,1000);paintStage();
 }
+function circuitWorkDur(st){ return st.dur!=null?st.dur:wod.circuit.work; }
 function enterMain(){
-  if(run.mode==='vo2'){
-    run.stage='circuit'; run.round=1; run.station=0; run.phase='work'; run.t=wod.circuit.work;
+  if(run.mode==='vo2'||run.mode==='mobility'){
+    run.stage='circuit'; run.round=1; run.station=0; run.phase='work'; run.t=circuitWorkDur(wod.circuit.stations[0]);
     paintVo2Run();
   }else{
     // w/r : poids et reps en cours PAR exercice — en superset on alterne entre deux
@@ -1171,34 +1261,39 @@ function vo2Advance(){
     run.station=0; run.round++;
     if(run.round>wod.circuit.rounds){ endRun(); return 'end'; }
   }
-  run.phase='work'; run.t=wod.circuit.work;
+  run.phase='work'; run.t=circuitWorkDur(stations[run.station]);
   return 'work';
 }
 function paintVo2Run(){
   paintPrimary();
+  const isMobil=wod.mode==='mobility';
   const stations=wod.circuit.stations,st=stations[run.station];
   const t=Math.max(0,run.t),m=String(Math.floor(t/60)).padStart(2,'0'),s=String(t%60).padStart(2,'0');
   document.getElementById('clock').textContent=m+':'+s;
-  document.getElementById('phasePill').className='pill '+(run.phase==='rest'?'rest':'effort');
-  document.getElementById('phasePill').textContent=run.phase==='rest'?'REPOS':'EFFORT';
-  setPhase(run.phase);
   const isRest=run.phase==='rest';
+  document.getElementById('phasePill').className='pill '+(isRest?'rest':'effort');
+  document.getElementById('phasePill').textContent=isRest
+    ?(isMobil?'TRANSITION':'REPOS')
+    :(isMobil?(st.phase==='static'?'ÉTIREMENT':'MOBILITÉ'):'EFFORT');
+  setPhase(isRest?'rest':'effort');
   const total=wod.circuit.rounds*stations.length;
   const done=(run.round-1)*stations.length+run.station;
-  document.getElementById('runMeta').textContent=`TOUR ${run.round} / ${wod.circuit.rounds}`;
+  document.getElementById('runMeta').textContent=isMobil?`ÉTAPE ${Math.min(done+1,total)} / ${total}`:`TOUR ${run.round} / ${wod.circuit.rounds}`;
   setProgress(done,total);
   // En repos, la station affichée est celle qui arrive : il faut le dire.
-  document.getElementById('exLabel').textContent=isRest?'Prochaine station':'En cours';
+  document.getElementById('exLabel').textContent=isRest?(isMobil?'Prochaine étape':'Prochaine station'):'En cours';
   document.getElementById('now').textContent=st.n;
-  document.getElementById('setInfo').textContent=
-    `Station ${run.station+1} sur ${stations.length} · ${total-done} restantes`;
-  document.getElementById('rundose').textContent=isRest
-    ? st.cue : `À fond, vise ~90% de ta FC max · ${st.cue}`;
+  document.getElementById('setInfo').textContent=isMobil
+    ?`Étape ${run.station+1} sur ${stations.length} · ${total-done} restantes`
+    :`Station ${run.station+1} sur ${stations.length} · ${total-done} restantes`;
+  document.getElementById('rundose').textContent=isMobil
+    ? st.cue
+    : (isRest ? st.cue : `À fond, vise ~90% de ta FC max · ${st.cue}`);
   const isLast=run.station===stations.length-1&&run.round===wod.circuit.rounds;
   const nextSt=stations[(run.station+1)%stations.length];
   document.getElementById('next').textContent=isRest
     ? (isLast?'Dernière ligne droite après ce repos':'Puis · '+nextSt.n)
-    : 'SUIVANT · repos';
+    : 'SUIVANT · '+(isMobil?'transition':'repos');
 }
 function endRun(){
   clearInterval(run.iv);keepAwake(false);beepEnd();setPhase(null);
@@ -1278,7 +1373,8 @@ document.getElementById('recapList').onclick=e=>{
 };
 function bilanMetaText(){
   const n=((run&&run.log)||[]).length;
-  return `${wod.mode==='vo2'?'VO2max':'Force'} · ${S.dur} min · ${wod.ex.length} exercices`+
+  const label=wod.mode==='vo2'?'VO2max':wod.mode==='mobility'?'Mobilité':'Force';
+  return `${label} · ${curDurMin()} min · ${wod.ex.length} exercices`+
     (n?` · ${n} série${n>1?'s':''}`:'');
 }
 function paintRPE(){
@@ -1303,6 +1399,10 @@ function paintLvl(){
   document.getElementById('lvlList').innerHTML=PATTERNS.map(p=>{
     const cur=S.levels[p.id],variants=LIB[p.id][cur];
     const names=variants.map(v=>v.n).join(' · ');
+    // Tous les exercices au kettlebell du pattern, tous paliers confondus : on peut
+    // fixer le poids de départ à l'avance, pas seulement le laisser se déduire des séances loguées.
+    const kbVariants=[];
+    LIB[p.id].forEach(list=>list.forEach(v=>{ if(v.eq.includes('kb')) kbVariants.push(v); }));
     return `<div class="card"><div class="row">
         <span class="nm" style="color:var(--text);font-weight:800;font-size:14px">${p.short}</span>
         <span style="display:flex;align-items:center;gap:8px">
@@ -1313,7 +1413,17 @@ function paintLvl(){
       </div>
       <div class="lvlbar">${[0,1,2,3].map(i=>`<div class="lvlseg ${i<=cur?'on':''}"></div>`).join('')}</div>
       <div class="lvlnames">${names}</div>
-      <div class="lvlnames" style="margin-top:2px">${weeklySets(p.id)} série${weeklySets(p.id)===1?'':'s'} cette semaine</div></div>`;
+      <div class="lvlnames" style="margin-top:2px">${weeklySets(p.id)} série${weeklySets(p.id)===1?'':'s'} cette semaine</div>
+      ${kbVariants.length?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">
+        ${kbVariants.map(v=>`<div class="recapRow" style="border-top:none;padding-top:0;margin-top:6px">
+          <span class="lab" style="width:auto;flex:1;color:var(--text-dim);font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v.n}</span>
+          <div class="stepper" style="flex:none;gap:6px">
+            <button class="step sm" data-wlv="${v.n}:-2">−</button>
+            <span class="stepval sm">${S.weights[v.n]||DEFAULT_WEIGHT}<span class="unit">kg</span></span>
+            <button class="step sm" data-wlv="${v.n}:2">+</button>
+          </div>
+        </div>`).join('')}
+      </div>`:''}</div>`;
   }).join('');
 }
 function paintHist(){
@@ -1321,7 +1431,7 @@ function paintHist(){
   const l=document.getElementById('histList');
   l.innerHTML=S.history.length?S.history.slice().reverse().map(h=>
     `<div class="hist">
-       <span class="badge ${h.mode==='vo2'?'vo2':'force'}">${h.mode==='vo2'?'VO2MAX':'FORCE'}</span>
+       <span class="badge ${h.mode==='vo2'?'vo2':h.mode==='mobility'?'mobility':'force'}">${h.mode==='vo2'?'VO2MAX':h.mode==='mobility'?'MOBILITÉ':'FORCE'}</span>
        <div class="body">
          <div class="d">${new Date(h.d).toLocaleDateString('fr-CH',{day:'2-digit',month:'short'})}</div>
          <div class="m" style="${h.pain&&h.pain.length?'color:var(--alert)':''}">${[
@@ -1340,12 +1450,15 @@ document.getElementById('mode').onclick=e=>{const b=e.target.closest('[data-m]')
   S.mode=b.dataset.m;save();paintHome()};
 document.getElementById('gen').onclick=()=>{generate();show('wod')};
 document.getElementById('regen').onclick=()=>{generate()};
-document.getElementById('wodList').onclick=e=>{const b=e.target.closest('[data-swap]');if(!b)return;
+document.getElementById('wodList').onclick=e=>{
+  const p=e.target.closest('[data-pick]');
+  if(p){ const[li,vi]=p.dataset.pick.split(':').map(Number); selectVariant(pickerIdx,li,vi); return; }
+  const b=e.target.closest('[data-swap]');if(!b)return;
   const i=+b.dataset.swap;
   if(wod.mode==='vo2'){ const next=pickVo2(wod.circuit.stations[i].n);
     if(next){wod.circuit.stations[i]=next;highlightIdx=i;paintWod();} return; }
-  const cur=wod.ex[i],next=pick(cur.pat,cur.n);
-  if(next){wod.ex[i]=next;highlightIdx=i;paintWod();}};
+  pickerIdx=pickerIdx===i?-1:i; paintWod();
+};
 document.getElementById('setlog').onclick=e=>{
   const b=e.target.closest('[data-log]');if(!b)return;
   const[kind,delta]=b.dataset.log.split(':');
@@ -1373,7 +1486,10 @@ function primaryLabel(){
   if(!run) return 'SÉRIE FAITE';
   if(run.stage==='prep') return 'COMMENCER L\'ÉCHAUFFEMENT';
   if(run.stage==='warmup') return 'ÉCHAUFFEMENT FINI';
-  if(run.stage==='circuit') return run.phase==='rest'?'PASSER LE REPOS':'STATION FAITE';
+  if(run.stage==='circuit'){
+    if(wod.mode==='mobility') return run.phase==='rest'?'PASSER':'ÉTAPE FAITE';
+    return run.phase==='rest'?'PASSER LE REPOS':'STATION FAITE';
+  }
   return run.rest?'PASSER LE REPOS':'SÉRIE FAITE';
 }
 function paintPrimary(){ document.getElementById('doneSet').textContent=primaryLabel(); }
@@ -1413,13 +1529,20 @@ document.getElementById('painList').onclick=e=>{const b=e.target.closest('[data-
 document.getElementById('save').onclick=()=>{
   const pain=[...document.querySelectorAll('#painList .chip[aria-pressed="true"]')]
     .filter(c=>c.dataset.p!=='aucune').map(c=>wod.ex[+c.dataset.p].n);
-  S.history.push({d:Date.now(),dur:S.dur,mode:wod.mode,kind:wod.kind||null,rpe:selectedRPE,
+  S.history.push({d:Date.now(),dur:curDurMin(),mode:wod.mode,kind:wod.kind||null,rpe:selectedRPE,
     pain,pats:wod.ex.filter(e=>e.pat).map(e=>e.pat),sets:(run&&run.log)||[]});
   pain.forEach(nm=>{const e=wod.ex.find(x=>x.n===nm);
     if(e&&e.pat&&S.levels[e.pat]>0)S.levels[e.pat]--;});
   save();show('home');paintHome();
 };
-document.getElementById('lvlList').onclick=e=>{const b=e.target.closest('[data-lv]');if(!b)return;
+document.getElementById('lvlList').onclick=e=>{
+  const w=e.target.closest('[data-wlv]');
+  if(w){
+    const i=w.dataset.wlv.lastIndexOf(':'),name=w.dataset.wlv.slice(0,i),delta=+w.dataset.wlv.slice(i+1);
+    S.weights[name]=Math.max(0,(S.weights[name]||DEFAULT_WEIGHT)+delta);
+    save();paintLvl();return;
+  }
+  const b=e.target.closest('[data-lv]');if(!b)return;
   const[p,d]=b.dataset.lv.split(':');S.levels[p]=Math.max(0,Math.min(3,S.levels[p]+ +d));save();paintLvl()};
 document.getElementById('export').onclick=()=>{
   const a=document.createElement('a');
@@ -1496,6 +1619,7 @@ function normalizeState(){
   if(!DURS.some(d=>d.v===S.dur)){
     S.dur=DURS.reduce((a,b)=>Math.abs(b.v-S.dur)<Math.abs(a.v-S.dur)?b:a).v;
   }
+  if(typeof S.mobilDur!=='number'||!MOBIL_DURS.some(d=>d.v===S.mobilDur)) S.mobilDur=12;
   S.equip=ALL_EQUIP;
 }
 (()=>{
