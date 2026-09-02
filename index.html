@@ -146,6 +146,7 @@ body.has-nav .wrap{padding-bottom:calc(env(safe-area-inset-bottom) + 100px)}
 .rundose{font-size:12px;color:var(--text-dim);text-align:center;line-height:1.5;max-width:320px}
 #v-run.phase-effort .rundose{color:var(--text-dim-effort)}
 #v-run.phase-rest .rundose{color:var(--text-dim-rest)}
+.loadhint{font-size:11px;font-weight:800;color:var(--accent);text-align:center;margin-top:-6px}
 
 .nextbanner{border-radius:var(--r);padding:10px 14px;font-size:12px;font-weight:700;
   background:rgba(255,255,255,.05);color:var(--text-dim)}
@@ -239,7 +240,9 @@ nav.tabs button.on{color:var(--accent)}
     <div class="h">NOUVELLE SÉANCE</div>
     <div class="tiles" id="mode"></div>
     <div class="stepper" id="durStepper"></div>
+    <div id="lastBox"></div>
     <div id="readyBox"></div>
+    <div id="deloadBox"></div>
     <div class="spacer"></div>
     <button class="btn" id="gen">GÉNÉRER →</button>
   </div>
@@ -270,6 +273,7 @@ nav.tabs button.on{color:var(--accent)}
       <span class="setinfo" id="setInfo"></span>
       <div class="clockbox"><span class="clock" id="clock">00:00</span></div>
       <p class="rundose" id="rundose"></p>
+      <p class="loadhint hide" id="loadHint"></p>
       <div class="setlog hide" id="setlog"></div>
     </div>
     <div class="nextbanner" id="next"></div>
@@ -349,7 +353,7 @@ nav.tabs button.on{color:var(--accent)}
         <p><b>La liste d'exercices.</b> Avant de commencer, le bouton ⇄ ouvre la liste complète des variantes de ce mouvement, tous paliers confondus — tape directement celle que tu veux faire, ce n'est plus un tirage au sort. "Regénérer" retire toute la séance et en propose une nouvelle. L'étiquette au-dessus de chaque nom d'exercice indique son pattern — c'est ce qui te dit quel groupe musculaire il travaille.</p>
       </div>
       <div class="card">
-        <p><b>Les 8 patterns, et ce qu'ils travaillent.</b> Une séance Force en contient toujours un de chaque — jamais 0, jamais 2 — donc rien n'est oublié d'une séance à l'autre, seul l'exercice précis tourne.</p>
+        <p><b>Les 9 patterns, et ce qu'ils travaillent.</b> Une séance Force en contient toujours un de chaque — jamais 0, jamais 2 — donc rien n'est oublié d'une séance à l'autre. L'exercice précis tourne aussi tout seul d'une séance à l'autre : c'est celui que tu n'as pas fait depuis le plus longtemps qui sort, pas un tirage au sort qui peut en oublier un pendant un mois.</p>
         <p style="margin-top:8px"><b>Charnière</b> — ischio-jambiers, fessiers, bas du dos.<br>
         <b>Squat</b> — quadriceps, fessiers.<br>
         <b>Poussée verticale</b> — épaules, triceps.<br>
@@ -357,10 +361,11 @@ nav.tabs button.on{color:var(--accent)}
         <b>Tirage vertical</b> — grand dorsal, biceps.<br>
         <b>Tirage horizontal</b> — milieu du dos, biceps.<br>
         <b>Anti-rotation</b> — sangle abdominale profonde, obliques.<br>
-        <b>Stabilisateurs de hanche</b> — moyen fessier, adducteurs : ce qui empêche le genou de partir vers l'intérieur sur un appui instable, particulièrement utile en trail.</p>
+        <b>Stabilisateurs de hanche</b> — moyen fessier, adducteurs : ce qui empêche le genou de partir vers l'intérieur sur un appui instable, particulièrement utile en trail.<br>
+        <b>Mollets</b> — jumeaux et soléaire : ce qui encaisse le plus à chaque appui de course, surtout en descente, et protège le tendon d'Achille.</p>
       </div>
       <div class="card">
-        <p><b>Le déroulé du chrono.</b> 20 secondes de préparation (pose le téléphone, mets-toi en place) → 5 minutes d'échauffement chronométré → puis les exercices. Pendant le repos, le décompte bipe de plus en plus fort dans les 5 dernières secondes pour te prévenir sans regarder l'écran.</p>
+        <p><b>Le déroulé du chrono.</b> 20 secondes de préparation (pose le téléphone, mets-toi en place) → 5 minutes d'échauffement scripté, étape par étape avec sa propre consigne (respiration, psoas, contrôle du bassin, dorsiflexion de cheville) → puis les exercices. Pendant le repos, le décompte bipe de plus en plus fort dans les 5 dernières secondes pour te prévenir sans regarder l'écran.</p>
       </div>
       <div class="card">
         <p><b>Les boutons du chrono.</b> Le gros bouton est ton geste principal : <b>SÉRIE FAITE</b> valide la série que tu viens de terminer (avec le poids et les reps affichés) et lance le repos. Pendant le repos il devient <b>PASSER LE REPOS</b> si tu es déjà prêt — ça ne compte pas de série en plus. En dessous : <b>PAUSE</b> gèle tout, <b>PASSER</b> saute l'exercice en cours et toutes ses séries restantes, <b>STOP</b> arrête la séance (avec confirmation).</p>
@@ -381,7 +386,7 @@ nav.tabs button.on{color:var(--accent)}
         <p><b>Les séances alternent LOURD et VOLUME.</b> Une séance sur deux, l'app baisse les répétitions et allonge les repos (lourd), puis l'inverse la fois suivante (volume). Varier le stimulus plutôt que répéter la même séance donne de meilleurs résultats à volume égal, et ça laisse des jours plus légers pour tes jambes avant une sortie.</p>
       </div>
       <div class="card">
-        <p><b>Les exercices sont appairés (superset).</b> Un mouvement du bas du corps est enchaîné avec un du haut : pendant que tu fais l'un, l'autre récupère. Chaque exercice garde sa vraie fenêtre de récupération, mais la séance dure environ moitié moins longtemps — c'est ce qui permet de couvrir les 8 patterns à chaque fois sans y passer une heure.</p>
+        <p><b>Les exercices sont appairés (superset).</b> Un mouvement du bas du corps est enchaîné avec un du haut : pendant que tu fais l'un, l'autre récupère. Chaque exercice garde sa vraie fenêtre de récupération, mais la séance dure environ moitié moins longtemps — c'est ce qui permet de couvrir les 9 patterns à chaque fois sans y passer une heure. L'ordre des paires tourne aussi d'une séance à l'autre, pour qu'un même pattern (le tirage horizontal, par exemple) ne finisse pas systématiquement en dernier, sur des bras déjà entamés.</p>
       </div>
       <div class="card">
         <p><b>Le repos s'adapte à chaque exercice.</b> Fini le 60s pour tout : un mouvement explosif ou lourd reçoit ~2 min (le temps que la filière énergétique se recharge), un travail modéré ~90s, un exercice de stabilité ~60s. Un repos long sur les gros mouvements donne de meilleurs gains de force <i>et</i> de muscle qu'un repos court, contrairement à l'intuition. Le nombre de séries est ensuite ajusté pour tenir dans la durée que tu as choisie.</p>
@@ -396,7 +401,10 @@ nav.tabs button.on{color:var(--accent)}
         <p><b>Effort ressenti (RPE).</b> À la fin de chaque séance, une note de 1 (aucun effort) à 10 (à l'échec). Vise 7-8 pour une séance de travail normale — c'est aussi ce qui alimente les signaux de progression et de fatigue.</p>
       </div>
       <div class="card">
-        <p><b>Les signaux automatiques.</b> Un badge <b>💪 charge+</b> apparaît sur un exercice quand tu as atteint le haut de la fourchette de reps à la même charge deux fois de suite — c'est le moment de monter en poids. À l'inverse, si un pattern a été très dur (RPE ≥ 8) deux séances de suite, l'accueil te propose de lever le pied plutôt que d'insister.</p>
+        <p><b>Les signaux automatiques.</b> Un badge <b>💪 charge+</b> apparaît sur un exercice quand tu as atteint le haut de la fourchette de reps à la même charge deux fois de suite. Le signal agit directement : le stepper de poids part alors de +2kg tout seul pendant l'effort, avec un rappel à l'écran — redescends d'un tap sur "−" si tu ne le sens pas ce jour-là. À l'inverse, si un pattern a été très dur (RPE ≥ 8) deux séances de suite, l'accueil te propose de lever le pied plutôt que d'insister.</p>
+      </div>
+      <div class="card">
+        <p><b>Décharge planifiée.</b> Après 4 semaines de pratique régulière, l'accueil propose une séance à volume réduit (~40% de séries en moins, mêmes exercices, mêmes charges) pour laisser la fatigue redescendre — tu peux l'activer pour la prochaine séance ou la reporter d'une semaine, par exemple avant une sortie longue.</p>
       </div>
       <div class="card">
         <p><b>VO2max.</b> Un circuit de 5 exercices cardio-intenses au poids du corps et au kettlebell, tirés au sort, enchaînés en alternant effort et repos chronométrés sur plusieurs tours. Le chrono avance tout seul, tu suis. Pousse vraiment fort sur chaque bloc d'effort (~90% de ta fréquence cardiaque max) — c'est cette intensité proche du maximum qui fait progresser le VO2max, pas un rythme confortable.</p>
@@ -442,7 +450,18 @@ const PATTERNS=[
   {id:'pullV', short:'Tirage vert.'},
   {id:'pullH', short:'Tirage horiz.'},
   {id:'core',  short:'Anti-rotation'},
-  {id:'hip',   short:'Stab. hanche'}
+  {id:'hip',   short:'Stab. hanche'},
+  {id:'calf',  short:'Mollets'}
+];
+
+// Mouvements qui chargent le bas du dos en position cambrée ou explosive : tant
+// que la zone lombaire reste sensible (antéversion du bassin prononcée, suivi
+// kiné), ils ne sortent pas tout seuls à la génération. Vide ce tableau (ou
+// retire un nom) quand ce n'est plus le cas — les exercices restent dans LIB
+// et VO2_POOL, donc toujours accessibles à la main via ⇄ si besoin ponctuel.
+const AVOID=[
+  "Snatch complet","Half snatch","Push press","Double press kettlebell",
+  "Snatch kettlebell, alterné","Thruster kettlebell"
 ];
 
 /* ---------- bibliothèque : 4 paliers par pattern, plusieurs variantes par palier ---------- */
@@ -451,12 +470,14 @@ hinge:[
  [
   {n:"Soulevé de terre kettlebell",eq:['kb'],reps:"8–12",cue:"Dos neutre, la barre du KB reste sous les épaules. Pousse le sol, ne tire pas avec le bas du dos."},
   {n:"Soulevé de terre roumain 1 jambe, poids du corps",eq:['rien'],reps:"3 × 10 / jambe",cue:"Bascule buste et jambe arrière ensemble comme une balance. Touche le sol du bout des doigts si la souplesse le permet."},
-  {n:"Pont fessier au sol",eq:['rien'],reps:"3 × 15",cue:"Pieds à plat, talons proches des fesses. Monte le bassin en serrant les fessiers, sans cambrer le bas du dos. Pause 1 seconde en haut."}
+  {n:"Pont fessier au sol",eq:['rien'],reps:"3 × 15",cue:"Pieds à plat, talons proches des fesses. Monte le bassin en serrant les fessiers, sans cambrer le bas du dos. Pause 1 seconde en haut."},
+  {n:"Soulevé de terre roumain 1 jambe, appui mural",eq:['rien'],reps:"3 × 8 / jambe",cue:"Genou de la jambe libre plié à 90° et écrasé contre un mur pendant tout le mouvement, charnière sur la jambe d'appui. La poussée dans le mur force le fessier d'appui à travailler à fond (inhibition réciproque)."}
  ],
  [
   {n:"Swing 2 mains",eq:['kb'],reps:"3 × 15",cue:"C'est une charnière, pas un squat. Le KB flotte, tu ne le lèves pas avec les bras."},
   {n:"Soulevé de terre roumain 1 jambe (kettlebell)",eq:['kb'],reps:"3 × 8 / jambe",cue:"Genou d'appui légèrement fléchi, KB près du tibia. La hanche du côté libre reste haute, pas de rotation du bassin."},
-  {n:"Hip thrust",eq:['rien'],reps:"3 × 12",cue:"Haut du dos calé sur un canapé ou un banc, pieds à plat. Menton rentré, côtes basses. Monte jusqu'à ce que le buste soit parallèle au sol, sans cambrer."}
+  {n:"Hip thrust",eq:['rien'],reps:"3 × 12",cue:"Haut du dos calé sur un canapé ou un banc, pieds à plat. Menton rentré, côtes basses. Monte jusqu'à ce que le buste soit parallèle au sol, sans cambrer."},
+  {n:"Leg curl aux sliders",eq:['rien'],reps:"3 × 8",cue:"Sur le dos, talons sur des chaussettes ou une serviette sur un sol lisse. Monte en pont, tends les jambes en glissant, ramène sans laisser le bassin retomber. L'étape qui manquait entre le pont fessier et le Nordic curl."}
  ],
  [
   {n:"Swing 1 bras",eq:['kb'],reps:"3 × 10 / côté",cue:"Résiste à la rotation du buste. L'épaule libre reste basse."},
@@ -568,19 +589,23 @@ pullH:[
 core:[
  [
   {n:"Suitcase carry",eq:['kb'],reps:"4 × 30 s / côté",cue:"Un KB d'un côté, marche droit. Épaules de niveau — c'est tout l'exercice."},
-  {n:"Dead bug",eq:['rien'],reps:"3 × 10 / côté",cue:"Bas du dos plaqué au sol en permanence. Bras et jambe opposés descendent ensemble, lentement."}
+  {n:"Dead bug",eq:['rien'],reps:"3 × 10 / côté",cue:"Bas du dos plaqué au sol en permanence. Bras et jambe opposés descendent ensemble, lentement."},
+  {n:"Pallof press",eq:['elastique'],reps:"3 × 10 / côté",cue:"Élastique ancré sur le côté à hauteur de nombril, pousse les mains droit devant toi sans laisser le buste tourner vers l'ancrage. L'anti-rotation la plus directe qui existe."}
  ],
  [
   {n:"Renegade row",eq:['kb'],reps:"3 × 8 / côté",cue:"Pieds larges. Le bassin ne tourne pas quand tu tires."},
-  {n:"Bird dog",eq:['rien'],reps:"3 × 10 / côté",cue:"Bras et jambe opposés tendus à l'horizontale. Bassin de niveau, pas de bascule."}
+  {n:"Bird dog",eq:['rien'],reps:"3 × 10 / côté",cue:"Bras et jambe opposés tendus à l'horizontale. Bassin de niveau, pas de bascule."},
+  {n:"Pallof press à genoux",eq:['elastique'],reps:"3 × 10 / côté",cue:"Même geste, à genoux. L'appui instable en moins isole encore plus le contrôle du tronc contre la rotation."}
  ],
  [
   {n:"Rack walk 1 bras",eq:['kb'],reps:"4 × 30 s / côté",cue:"KB en rack, côtes basses. Respire normalement pendant la marche."},
-  {n:"Planche latérale",eq:['rien'],reps:"3 × 30–40 s / côté",cue:"Corps aligné des chevilles à la tête. La hanche ne tombe pas, ne monte pas."}
+  {n:"Planche latérale",eq:['rien'],reps:"3 × 30–40 s / côté",cue:"Corps aligné des chevilles à la tête. La hanche ne tombe pas, ne monte pas."},
+  {n:"Pallof press avec marche",eq:['elastique'],reps:"3 × 8 pas / côté",cue:"Pousse les mains devant toi puis marche latéralement en gardant la tension et le buste droit. La rotation cherche à s'installer à chaque pas — résiste."}
  ],
  [
   {n:"Turkish get-up",eq:['kb'],reps:"3 × 2 / côté",cue:"Lent, une phase à la fois, les yeux sur le KB. C'est un test de mobilité, pas un exercice de force."},
-  {n:"Planche latérale, jambe levée",eq:['rien'],reps:"3 × 25–30 s / côté",cue:"Même gainage que la planche latérale, jambe du dessus levée et tenue. Le bassin reste stable."}
+  {n:"Planche latérale, jambe levée",eq:['rien'],reps:"3 × 25–30 s / côté",cue:"Même gainage que la planche latérale, jambe du dessus levée et tenue. Le bassin reste stable."},
+  {n:"Pallof press overhead",eq:['elastique'],reps:"3 × 8 / côté",cue:"Les mains montent au-dessus de la tête en poussant contre l'élastique : le bras de levier s'allonge, la rotation est plus dure à contrer."}
  ]
 ],
 // Moyen fessier + adducteurs : les stabilisateurs qui empêchent le genou de partir
@@ -603,9 +628,32 @@ hip:[
   {n:"Copenhagen plank, jambe tendue",eq:['rien'],reps:"3 × 15–20 s / côté",cue:"Même position mais jambe du dessous tendue. Exigeant pour les adducteurs — arrête si la hanche s'affaisse."},
   {n:"Marche latérale, élastique fort",eq:['elastique'],reps:"3 × 15 pas / côté",cue:"Élastique plus résistant, pas plus larges. Le bassin reste de niveau du début à la fin."}
  ]
+],
+// Mollets : aucun des 8 patterns précédents ne les travaille, et c'est le trou le
+// plus coûteux pour un traileur — le soléaire encaisse 6 à 8 fois le poids du
+// corps à chaque appui, davantage en descente, et c'est souvent lui qui lâche en
+// premier sur une sortie longue. Il protège aussi le tendon d'Achille,
+// l'aponévrose plantaire et le tibia. Jumeaux (genou tendu) et soléaire (genou
+// fléchi) sont distingués à chaque palier, pas traités comme un seul muscle.
+calf:[
+ [
+  {n:"Mollets debout, 2 jambes",eq:['rien'],reps:"3 × 20",cue:"Amplitude complète : monte haut sur la pointe des pieds, redescends jusqu'à sentir l'étirement. Jumeaux, genou tendu."},
+  {n:"Soleus raise assis",eq:['rien'],reps:"3 × 20",cue:"Assis, genoux fléchis à 90°, monte les talons. Genou fléchi isole le soléaire — celui qui encaisse le plus en descente."}
+ ],
+ [
+  {n:"Mollets 1 jambe sur une marche",eq:['rien'],reps:"3 × 15 / jambe",cue:"Talon dans le vide sous le niveau de la marche pour l'amplitude, puis monte haut. Tiens un mur ou une rampe pour l'équilibre."},
+  {n:"Soleus raise assis, lesté (kettlebell)",eq:['kb'],reps:"3 × 15",cue:"KB posé sur les genoux, genoux fléchis à 90°. Monte les talons sans lever les orteils du sol."}
+ ],
+ [
+  {n:"Mollets 1 jambe, tempo 3 s",eq:['rien'],reps:"3 × 12 / jambe",cue:"3 secondes de descente contrôlée, pas de rebond en bas. Le tempo remplace la charge pour augmenter la difficulté."},
+  {n:"Soleus raise 1 jambe, lesté",eq:['kb'],reps:"3 × 12 / jambe",cue:"KB posé sur le genou plié, une jambe à la fois. Amplitude complète, pas d'à-coup."}
+ ],
+ [
+  {n:"Mollets 1 jambe, lesté (kettlebell)",eq:['kb'],reps:"3 × 10 / jambe",cue:"KB tenu du côté de la jambe de travail. Monte haut, contrôle la descente jusqu'à l'étirement."},
+  {n:"Pogo hops",eq:['rien'],reps:"3 × 30 s",cue:"Petits bonds sur place, chevilles raides, contact au sol le plus court possible. La réactivité du mollet en appui de course, pas la force pure."}
+ ]
 ]
 };
-const WARM={n:"Échauffement",reps:"5 min",cue:"Cercles d'épaules, cat-cow, fentes avec rotation, 20 swings légers. Ne saute pas cette étape."};
 
 /* ---------- circuit VO2max : poids du corps + kettlebell uniquement ---------- */
 // Uniquement des mouvements à forte demande cardio (pas de blocs "gainage/force" du
@@ -639,10 +687,15 @@ const MOBIL_DYNAMIC=[
  {n:"Rotations et montées de cheville",dur:30,phase:'dynamic',cue:"Rotations de cheville dans chaque sens, puis montées sur pointes rapides. Prépare l'appui pour le sentier technique."},
  {n:"Rotation thoracique à 4 pattes (thread the needle)",dur:40,phase:'dynamic',cue:"Un bras glisse sous le buste puis remonte vers le plafond, regard qui suit la main. Change de côté à la moitié."}
 ];
-// 5 paires gauche/droite, dans l'ordre de priorité pour un coureur.
+// 6 paires gauche/droite, dans l'ordre de priorité pour un coureur. Le carré des
+// lombes juste après les fléchisseurs de hanche n'est pas anodin : chez quelqu'un
+// dont le bassin bascule vers l'avant, c'est souvent lui — pas les érecteurs —
+// qui donne la sensation de zone lombaire sensible.
 const MOBIL_STATIC=[
  {n:"Étirement fléchisseur de hanche — droite",dur:35,phase:'static',cue:"Fente basse, genou arrière au sol, bascule le bassin vers l'avant sans cambrer. La zone la plus souvent raide chez un coureur."},
  {n:"Étirement fléchisseur de hanche — gauche",dur:35,phase:'static',cue:"Même position, côté gauche. Bascule le bassin vers l'avant sans cambrer le bas du dos."},
+ {n:"Étirement carré des lombes — droite",dur:35,phase:'static',cue:"Assis ou debout, penche le buste sur le côté gauche en gardant le bassin stable, bras droit au-dessus de la tête. Souvent le vrai responsable d'une sensation de bas du dos sensible."},
+ {n:"Étirement carré des lombes — gauche",dur:35,phase:'static',cue:"Même étirement, côté opposé. Le bassin reste stable, l'étirement vient du buste."},
  {n:"Étirement ischio-jambier debout — droite",dur:35,phase:'static',cue:"Talon au sol devant toi, jambe tendue, buste qui plie depuis la hanche, dos plat."},
  {n:"Étirement ischio-jambier debout — gauche",dur:35,phase:'static',cue:"Même étirement, côté gauche. Dos plat, pas d'arrondi du bas du dos."},
  {n:"Étirement du mollet contre un mur — droite",dur:30,phase:'static',cue:"Jambe arrière tendue, talon au sol, bascule le bassin vers le mur. Zone clé pour la propulsion en course."},
@@ -652,7 +705,9 @@ const MOBIL_STATIC=[
  {n:"Étirement quadriceps debout — droite",dur:30,phase:'static',cue:"Talon vers la fesse, genoux collés, bassin poussé légèrement vers l'avant. Appui sur un mur si l'équilibre manque."},
  {n:"Étirement quadriceps debout — gauche",dur:30,phase:'static',cue:"Même étirement, côté gauche. Genoux collés du début à la fin."}
 ];
-const MOBIL_CFG={8:{dyn:5,pairs:1},12:{dyn:7,pairs:3},16:{dyn:7,pairs:5}};
+// Nombre de paires statiques incluses par durée — le carré des lombes (2e paire)
+// est présent dès 8 minutes, pas réservé aux séances longues.
+const MOBIL_CFG={8:{dyn:5,pairs:2},12:{dyn:7,pairs:3},16:{dyn:7,pairs:6}};
 
 const ALL_EQUIP=['kb','anneaux','barre','elastique','rien'];
 const DURS=[{v:30,l:'30'},{v:40,l:'40'},{v:50,l:'50'}];
@@ -662,18 +717,74 @@ const VO2_WORK=40, VO2_REST=20;
 const VO2_ROUNDS={30:5,40:7,50:9};
 const MOBIL_TRANSITION=6;
 const PREP_SECONDS=20, WARMUP_SECONDS=300;
+// Échauffement scripté : c'est le seul bloc joué à 100% des séances, donc c'est
+// là que le travail correctif (respiration, psoas, contrôle du bassin, test de
+// dorsiflexion) doit vivre — pas dans un mode Mobilité séparé qu'on finit par
+// sauter. Les durées totalisent exactement WARMUP_SECONDS (300 s).
+const WARM_STEPS=[
+ {n:"Respiration côtes basses",dur:40,cue:"Allongé ou assis, expiration longue et complète par la bouche. Ça remet le diaphragme en face du bassin — sans ça, les abdos ne peuvent pas se raccourcir correctement."},
+ {n:"Étirement psoas — droite",dur:45,cue:"Fente basse, genou arrière au sol, fesse arrière serrée, bassin en rétroversion (pousse le pubis vers l'avant)."},
+ {n:"Étirement psoas — gauche",dur:45,cue:"Même position, côté gauche. Fesse serrée, bassin en rétroversion."},
+ {n:"Dead bug",dur:45,cue:"Bas du dos plaqué au sol en permanence. Bras et jambe opposés descendent ensemble, lentement."},
+ {n:"Pont fessier 1 jambe",dur:45,cue:"L'autre jambe tendue en l'air. Monte le bassin sans le faire basculer d'un côté."},
+ {n:"Soulevé de terre roumain 1 jambe, appui mural",dur:50,cue:"Genou de la jambe libre plié à 90°, écrasé contre un mur pendant tout le mouvement. La poussée dans le mur force le fessier d'appui à travailler à fond."},
+ {n:"Chevilles et mollets",dur:30,cue:"Rotations de cheville, puis test genou au mur : pieds à 10 cm du mur, essaie de toucher le mur avec le genou sans que le talon décolle. Si ça ne passe pas, la dorsiflexion est limitée — ça se traduit par une cambrure compensatoire sur les squats."}
+];
+// Objet dérivé pour l'affichage résumé dans la liste de séance (avant de lancer le chrono).
+const WARM={n:"Échauffement",reps:Math.round(WARMUP_SECONDS/60)+" min",cue:WARM_STEPS.map(s=>s.n).join(' · ')};
+// Étape en cours à `elapsed` secondes depuis le début de l'échauffement, et temps
+// restant sur CETTE étape précise (pas sur les 5 minutes globales).
+function warmStepAt(elapsed){
+  let acc=0;
+  for(let i=0;i<WARM_STEPS.length;i++){
+    const step=WARM_STEPS[i];
+    if(elapsed<acc+step.dur) return {step,index:i,left:acc+step.dur-elapsed};
+    acc+=step.dur;
+  }
+  const last=WARM_STEPS[WARM_STEPS.length-1];
+  return {step:last,index:WARM_STEPS.length-1,left:0};
+}
 const DEFAULT_WEIGHT=16; // kg, point de départ neutre pour un exercice jamais loggé
 
 /* ---------- état ---------- */
 // Tout le matériel est toujours considéré comme disponible : plus de sélection à faire,
 // et ça garantit qu'aucun pattern (charnière, tirage...) ne soit exclu faute d'équipement.
-let S={equip:ALL_EQUIP,dur:30,mobilDur:12,mode:'force',levels:{},history:[],weights:{}};
+let S={equip:ALL_EQUIP,dur:30,mobilDur:12,mode:'force',levels:{},history:[],weights:{},
+  lastDeload:0,forceDeloadNext:false,deloadSnoozeUntil:0};
 PATTERNS.forEach(p=>S.levels[p.id]=1);   // index 0–3, départ palier 2
 let wod=null,run=null,selectedRPE=7,highlightIdx=-1;
 
 /* ---------- rendu accueil ---------- */
 function curDurMin(){ return wod&&wod.mode==='mobility'?S.mobilDur:(S.mode==='mobility'?S.mobilDur:S.dur); }
+function relDays(d){
+  const days=Math.floor((Date.now()-d)/(24*60*60*1000));
+  if(days<=0) return "aujourd'hui";
+  if(days===1) return 'hier';
+  return `il y a ${days} jours`;
+}
+function lastSessionLabel(h){
+  if(h.mode==='vo2') return 'VO2MAX';
+  if(h.mode==='mobility') return 'MOBILITÉ';
+  return 'FORCE '+(h.kind==='lourd'?'LOURD':'VOLUME');
+}
+// Repère au-dessus de tout le reste : savoir depuis quand on n'a rien fait vaut
+// souvent mieux qu'un conseil de plus. Une douleur signalée la dernière fois
+// reste visible ici tant qu'elle n'a pas été "digérée" par une séance propre.
+function paintLastBox(){
+  const el=document.getElementById('lastBox');
+  if(!S.history.length){
+    el.innerHTML=`<div class="card"><p><b>Première séance ici.</b> Choisis un mode et une durée, puis génère — l'app s'adapte ensuite à ce que tu logues, séance après séance.</p></div>`;
+    return;
+  }
+  const last=S.history[S.history.length-1];
+  let html=`<div class="meta">DERNIÈRE SÉANCE · ${lastSessionLabel(last)} · ${relDays(last.d)}${last.rpe?' · RPE '+last.rpe:''}</div>`;
+  if(last.pain&&last.pain.length){
+    html+=`<div class="card warn" style="margin-top:8px"><p><b>Douleur signalée la dernière fois :</b> ${last.pain.join(', ')}. Le palier concerné a déjà été redescendu automatiquement. Si ça revient pendant la séance, arrête l'exercice — ne finis pas la série pour "voir".</p></div>`;
+  }
+  el.innerHTML=html;
+}
 function paintHome(){
+  paintLastBox();
   document.getElementById('mode').innerHTML=MODES.map(m=>
     `<button class="tile ${S.mode===m.id?'on':''}" data-m="${m.id}">
       <div class="nm">${m.l}</div><div class="sub">${m.sub}</div></button>`).join('');
@@ -694,6 +805,16 @@ function paintHome(){
     ? `<div class="card tip"><p><b>Prêt à monter d'un cran :</b> ${ready.join(', ')}. Deux séances propres à RPE ≤ 6 sans douleur. Passe au palier suivant dans l'onglet Niveaux.</p></div>`
     : (S.mode==='vo2' ? `<div class="card warn"><p><b>VO2max :</b> circuit intense, poids du corps + kettlebell. Adapte l'intensité si besoin — la forme prime sur la vitesse.</p></div>`
     : S.mode==='mobility' ? `<div class="card tip"><p><b>Mobilité :</b> dynamique d'abord (prépare le mouvement), statique ensuite (récupération, hanche/ischio/mollet/piriforme). Avant une sortie, fais juste le début dynamique.</p></div>` : '');
+  document.getElementById('deloadBox').innerHTML = S.mode!=='force' ? '' :
+    deloadDue()
+    ? `<div class="card tip"><p><b>Décharge programmée :</b> 4 semaines de pratique régulière derrière toi. Une séance à volume réduit (~40% de séries en moins, mêmes exercices, mêmes charges) aide à dissiper la fatigue accumulée — utile aussi avant une sortie longue.</p>
+       <div class="chips" style="margin-top:10px">
+         <button class="chip" id="deloadNow">Décharge à la prochaine séance</button>
+         <button class="chip" id="deloadSnooze">Reporter d'une semaine</button>
+       </div></div>`
+    : S.forceDeloadNext
+    ? `<div class="card tip"><p><b>Décharge activée</b> pour la prochaine séance générée — volume réduit, mêmes exercices, mêmes charges.</p></div>`
+    : '';
 }
 function stepDur(delta){
   const durs=S.mode==='mobility'?MOBIL_DURS:DURS;
@@ -759,6 +880,18 @@ function weeklyCounts(nWeeks){
     out.push(S.history.filter(h=>h.d>=start&&h.d<end).length);
   }
   return out;
+}
+// Décharge planifiée : réactive (needsDeload, RPE≥8 x2) attend le signal de
+// fatigue ; celle-ci anticipe, sur la régularité elle-même — 4 semaines actives
+// (≥1 séance Force) depuis la dernière décharge, ou depuis le début si aucune
+// décharge n'a encore eu lieu.
+function weeksSinceLastDeload(){
+  const since=S.lastDeload||0;
+  return new Set(S.history.filter(h=>h.mode==='force'&&h.d>since).map(h=>weekStart(h.d))).size;
+}
+function deloadDue(){
+  if(S.deloadSnoozeUntil&&Date.now()<S.deloadSnoozeUntil) return false;
+  return weeksSinceLastDeload()>=4;
 }
 // Poids max loggé par séance pour un exercice donné : la charge réelle, telle
 // que corrigée si besoin sur le bilan — pas un plan théorique.
@@ -852,12 +985,37 @@ function readyToLoadUp(name,target){
 }
 
 /* ---------- génération ---------- */
+// Nombre de séances écoulées depuis la dernière fois qu'un exercice précis est
+// sorti dans un mode donné (0 = c'était la séance précédente), Infinity s'il n'a
+// jamais été fait. S'appuie sur S.history[].exs (noms des exercices de la séance) ;
+// pour une séance enregistrée avant l'existence de ce champ, retombe sur les noms
+// déduits des séries loguées.
+function sessionsSinceIn(mode,name){
+  const hist=S.history.filter(h=>h.mode===mode);
+  for(let i=hist.length-1;i>=0;i--){
+    const names=hist[i].exs||(hist[i].sets||[]).map(s=>s.name);
+    if(names.includes(name)) return hist.length-1-i;
+  }
+  return Infinity;
+}
+function sessionsSince(name){ return sessionsSinceIn('force',name); }
 function pick(patId,exclude){
   const lvl=S.levels[patId],list=LIB[patId];
-  const matches=(i,skip)=>list[i].filter(v=>v.eq.some(e=>S.equip.includes(e))&&(!skip||v.n!==exclude));
+  const matches=(i,skip)=>list[i].filter(v=>v.eq.some(e=>S.equip.includes(e))&&(!skip||v.n!==exclude)&&!AVOID.includes(v.n));
+  // Fait tourner les variantes plutôt qu'un tirage pur : celle qui n'est pas
+  // sortie depuis le plus longtemps est prioritaire, égalité départagée au hasard
+  // (cas normal du démarrage à froid, où tout vaut Infinity).
+  const choose=variants=>{
+    let best=-Infinity,pool=[];
+    variants.forEach(v=>{
+      const s=sessionsSince(v.n);
+      if(s>best){ best=s; pool=[v]; } else if(s===best) pool.push(v);
+    });
+    return pool[Math.floor(Math.random()*pool.length)];
+  };
   const search=skip=>{
-    for(let i=lvl;i>=0;i--){ const v=matches(i,skip); if(v.length) return {...v[Math.floor(Math.random()*v.length)],lvl:i+1,pat:patId}; }
-    for(let i=lvl+1;i<list.length;i++){ const v=matches(i,skip); if(v.length) return {...v[Math.floor(Math.random()*v.length)],lvl:i+1,pat:patId}; }
+    for(let i=lvl;i>=0;i--){ const v=matches(i,skip); if(v.length) return {...choose(v),lvl:i+1,pat:patId}; }
+    for(let i=lvl+1;i<list.length;i++){ const v=matches(i,skip); if(v.length) return {...choose(v),lvl:i+1,pat:patId}; }
     return null;
   };
   return search(true)||search(false);
@@ -905,12 +1063,18 @@ function sessionKind(){
   const last=[...S.history].reverse().find(h=>h.mode==='force');
   return last&&last.kind==='lourd'?'volume':'lourd';
 }
+function forceSessionCount(){ return S.history.filter(h=>h.mode==='force').length; }
 const KIND_CFG={
   lourd:{restMul:1.25,repMul:0.7,label:'LOURD',note:'Charges plus lourdes, séries plus courtes, repos longs. Garde 1-2 reps en réserve.'},
   volume:{restMul:0.85,repMul:1,label:'VOLUME',note:'Plus de répétitions, repos plus courts. Garde 2-3 reps en réserve.'}
 };
 function generateForce(){
-  const kind=sessionKind(),cfg=KIND_CFG[kind];
+  const kind=sessionKind(),cfg=KIND_CFG[kind],offset=forceSessionCount();
+  // Décharge planifiée : consommée dès qu'une séance est générée avec le drapeau
+  // actif, même si elle n'est finalement pas enregistrée — c'est un choix explicite
+  // de l'utilisateur, pas un état à reconduire séance après séance.
+  const deload=!!S.forceDeloadNext;
+  if(deload){ S.forceDeloadNext=false; save(); }
   let ex=PATTERNS.map(p=>pick(p.id)).filter(Boolean);
   ex.forEach(e=>{
     e.rest=Math.round(REST_BY_TYPE[exerciseType(e)]*cfg.restMul/5)*5;
@@ -919,16 +1083,26 @@ function generateForce(){
       e.reps=e.reps.replace(/× (\d+)/,(m,n)=>'× '+Math.max(3,Math.round(+n*cfg.repMul)));
     }
   });
-  fitToBudget(ex,S.dur);
-  wod={mode:'force',kind,ex,seq:buildSequence(ex),rest:90};
+  if(deload){
+    // Volume réduit (~-40% de séries), mêmes exercices, mêmes charges : pas un
+    // nouveau tirage, juste moins de travail pour dissiper la fatigue accumulée.
+    ex.forEach(e=>{ e.sets=Math.max(MIN_SETS,Math.round(e.sets*0.6)); });
+  }
+  fitToBudget(ex,S.dur,!deload);
+  wod={mode:'force',kind,ex,offset,deload,seq:buildSequence(ex,offset),rest:90};
   paintWod();
 }
-// Ajuste le nombre de séries pour tenir dans la durée annoncée, en rognant d'abord
-// sur le haut du corps : pour un coureur, charnière / squat / stabilité de hanche
-// sont ce qu'il faut préserver en priorité.
-const TRIM_ORDER=['pushH','pullH','pushV','pullV','core','hip','squat','hinge'];
+// Ajuste le nombre de séries pour tenir dans la durée annoncée. Core et hip sont
+// rognés APRÈS le haut du corps, pas avant : ce sont eux qui tiennent le bassin
+// en place et protègent le bas du dos sous fatigue en fin de trail — les rogner
+// en premier serait l'inverse de ce qu'il faut pour un profil lombaire sensible.
+const TRIM_ORDER=['pushH','pullH','pushV','pullV','squat','core','calf','hip','hinge'];
 const MIN_SETS=2,MAX_SETS=5;
-function fitToBudget(ex,dur){
+// grow=false désactive la phase "remplit le temps restant" : c'est ce qu'il faut
+// pour une séance de décharge, où le volume réduit est voulu, pas un manque à
+// combler — sans ça, la marge laissée par les séries coupées se remplissait
+// aussitôt, presque comme si aucune décharge n'avait eu lieu.
+function fitToBudget(ex,dur,grow=true){
   const budget=dur*60-WARMUP_SECONDS-PREP_SECONDS;
   // Coût mesuré sur la séquence appairée, pas sur les exercices isolés.
   const cost=()=>buildSequence(ex).reduce((t,s)=>t+workSeconds(ex[s.i].reps)+s.rest,0);
@@ -943,16 +1117,18 @@ function fitToBudget(ex,dur){
   }
   // De la marge : on ajoute à tour de rôle, en commençant par ce qui compte le
   // plus pour un coureur, pour ne pas déséquilibrer la séance.
-  const addOrder=[...TRIM_ORDER].reverse();
-  let progressed=true;
-  while(progressed){
-    progressed=false;
-    for(const pat of addOrder){
-      const e=ex.find(x=>x.pat===pat&&x.sets<MAX_SETS);
-      if(!e) continue;
-      e.sets++;
-      if(cost()>budget){ e.sets--; progressed=false; break; }
-      progressed=true;
+  if(grow){
+    const addOrder=[...TRIM_ORDER].reverse();
+    let progressed=true;
+    while(progressed){
+      progressed=false;
+      for(const pat of addOrder){
+        const e=ex.find(x=>x.pat===pat&&x.sets<MAX_SETS);
+        if(!e) continue;
+        e.sets++;
+        if(cost()>budget){ e.sets--; progressed=false; break; }
+        progressed=true;
+      }
     }
   }
   // Normalise l'affichage : certaines fourchettes ("8–12") n'ont pas de préfixe de séries.
@@ -967,11 +1143,20 @@ function fitToBudget(ex,dur){
    récupération (2 min sur un mouvement lourd), mais la séance dure environ
    moitié moins — c'est ce qui permet de couvrir les 8 patterns à chaque fois
    sans passer une heure et sans sacrifier la qualité des séries. */
-const PAIR_LOWER=['hinge','squat','hip','core'];
+const PAIR_LOWER=['hinge','squat','hip','core','calf'];
 const PAIR_UPPER=['pushV','pullV','pushH','pullH'];
-function buildSequence(ex){
+// Décalage cyclique : appairer toujours [hinge+pushV] en premier ferait passer
+// tirage/poussée horizontale systématiquement en fin de séance, sur des bras déjà
+// entamés — un biais permanent. offset (le nombre de séances Force déjà faites)
+// fait tourner l'ordre des paires d'une séance à l'autre sans changer QUI est
+// appairé avec QUI (les deux tableaux tournent ensemble).
+function rotate(arr,n){
+  const len=arr.length,k=((n%len)+len)%len;
+  return arr.slice(k).concat(arr.slice(0,k));
+}
+function buildSequence(ex,offset=0){
   const idxOf=list=>list.map(p=>ex.findIndex(e=>e.pat===p)).filter(i=>i>=0);
-  const L=idxOf(PAIR_LOWER),U=idxOf(PAIR_UPPER);
+  const L=idxOf(rotate(PAIR_LOWER,offset)),U=idxOf(rotate(PAIR_UPPER,offset));
   const paired=new Set([...L,...U]);
   const pairs=[];
   for(let k=0;k<Math.max(L.length,U.length);k++){
@@ -998,13 +1183,18 @@ function buildSequence(ex){
 function curStep(){ return wod.seq[run.step]; }
 function curEx(){ return wod.ex[curStep().i]; }
 function generateVo2(){
-  const stations=shuffle(VO2_POOL).slice(0,5).map(v=>({...v}));
+  // Même logique de rotation que pick() : les stations pas sorties depuis le
+  // plus longtemps sont prioritaires, égalités mélangées au hasard.
+  const pool=VO2_POOL.filter(v=>!AVOID.includes(v.n));
+  const scored=shuffle(pool).map(v=>({v,s:sessionsSinceIn('vo2',v.n)}));
+  scored.sort((a,b)=>b.s-a.s);
+  const stations=scored.slice(0,5).map(x=>({...x.v}));
   wod={mode:'vo2',ex:stations,circuit:{stations,work:VO2_WORK,rest:VO2_REST,rounds:VO2_ROUNDS[S.dur]||4}};
   paintWod();
 }
 function pickVo2(exclude){
   const inCircuit=wod.circuit.stations.map(s=>s.n);
-  const options=VO2_POOL.filter(v=>v.n!==exclude&&!inCircuit.includes(v.n));
+  const options=VO2_POOL.filter(v=>v.n!==exclude&&!inCircuit.includes(v.n)&&!AVOID.includes(v.n));
   return options.length?{...options[Math.floor(Math.random()*options.length)]}:null;
 }
 function generateMobility(){
@@ -1028,9 +1218,10 @@ function paintWodMobility(){
 }
 function paintWodForce(){
   const cfg=KIND_CFG[wod.kind]||KIND_CFG.volume;
-  document.getElementById('seanceTitle').textContent='SÉANCE '+cfg.label;
+  document.getElementById('seanceTitle').textContent='SÉANCE '+cfg.label+(wod.deload?' · DÉCHARGE':'');
   document.getElementById('seanceMeta').textContent=S.dur+' MIN';
   document.getElementById('wodList').innerHTML=
+    (wod.deload?`<div class="card tip" style="margin-bottom:2px"><p><b>Séance de décharge :</b> mêmes exercices, mêmes charges, environ 40% de séries en moins. Laisse la fatigue redescendre avant la prochaine sortie longue.</p></div>`:'')+
     `<div class="card tip" style="margin-bottom:2px"><p><b>Séance ${cfg.label.toLowerCase()} :</b> ${cfg.note}</p></div>`+
     `<div class="ex"><div class="body">
       <div class="nm">${WARM.n}</div><div class="dose">${WARM.reps} · ${WARM.cue}</div></div></div>`+
@@ -1070,7 +1261,7 @@ function selectVariant(i,li,vi){
   let reps=e2.reps;
   if(wod.kind==='lourd') reps=reps.replace(/× (\d+)/,(m,n)=>'× '+Math.max(3,Math.round(+n*cfg.repMul)));
   e2.reps=/^\d+ ×/.test(reps)?reps.replace(/^\d+ ×/,e2.sets+' ×'):e2.sets+' × '+reps;
-  wod.ex[i]=e2; wod.seq=buildSequence(wod.ex);
+  wod.ex[i]=e2; wod.seq=buildSequence(wod.ex,wod.offset||0);
   highlightIdx=i; pickerIdx=-1; paintWod();
 }
 function paintWodVo2(){
@@ -1096,6 +1287,16 @@ async function keepAwake(on){
   try{ if(on&&'wakeLock'in navigator){lock=await navigator.wakeLock.request('screen')}
        else if(lock){lock.release();lock=null} }catch(e){}
 }
+// iOS relâche le wake lock dès que la page passe en arrière-plan et ne le
+// redemande jamais tout seul — l'écran se rendormait au milieu de la séance.
+// Le même retour au premier plan sert aussi à rattraper immédiatement un chrono
+// qui a dérivé pendant que setInterval était throttlé/gelé en arrière-plan.
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'&&run){
+    keepAwake(true);
+    if(!run.paused) tick();
+  }
+});
 
 /* ---------- teinte de phase (fond plein écran + meta theme-color) ---------- */
 function setPhase(phase){
@@ -1224,57 +1425,93 @@ function sets(reps){const m=reps.match(/^(\d+) ×/);return m?+m[1]:3}
 function startRun(){
   ensureAudio();
   document.getElementById('pause').textContent='⏸ PAUSE';
-  run={mode:wod.mode,stage:'prep',t:PREP_SECONDS,paused:false};
+  run={mode:wod.mode,stage:'prep',t:PREP_SECONDS,paused:false,deadline:Date.now()+PREP_SECONDS*1000};
   show('run');keepAwake(true);
   clearInterval(run.iv);run.iv=setInterval(tick,1000);paintStage();
 }
 function circuitWorkDur(st){ return st.dur!=null?st.dur:wod.circuit.work; }
 function enterMain(){
   if(run.mode==='vo2'||run.mode==='mobility'){
-    run.stage='circuit'; run.round=1; run.station=0; run.phase='work'; run.t=circuitWorkDur(wod.circuit.stations[0]);
+    run.stage='circuit'; run.round=1; run.station=0; run.phase='work';
+    run.t=circuitWorkDur(wod.circuit.stations[0]); run.deadline=Date.now()+run.t*1000;
     paintVo2Run();
   }else{
     // w/r : poids et reps en cours PAR exercice — en superset on alterne entre deux
     // mouvements, une valeur globale serait écrasée par le partenaire à chaque série.
-    run.stage='main'; run.step=0; run.rest=false; run.t=0; run.done={}; run.log=[]; run.w={}; run.r={};
+    // loadUp : quel emplacement a reçu le +2kg automatique de readyToLoadUp().
+    run.stage='main'; run.step=0; run.rest=false; run.t=0; run.done={}; run.log=[]; run.w={}; run.r={}; run.loadUp={};
     paintRun();
   }
 }
 function advanceStage(){
   beep('work'); flashClock();
-  if(run.stage==='prep'){ run.stage='warmup'; run.t=WARMUP_SECONDS; paintStage(); }
+  if(run.stage==='prep'){ run.stage='warmup'; run.t=WARMUP_SECONDS; run.deadline=Date.now()+WARMUP_SECONDS*1000; paintStage(); }
   else enterMain();
 }
 function paintStage(){
   paintPrimary();
   document.getElementById('setlog').innerHTML='';
   document.getElementById('setlog').classList.add('hide');
-  const t=Math.max(0,run.t),m=String(Math.floor(t/60)).padStart(2,'0'),s=String(t%60).padStart(2,'0');
-  document.getElementById('clock').textContent=m+':'+s;
   document.getElementById('phasePill').className='pill neutral';
   document.getElementById('phasePill').textContent=run.stage==='prep'?'PRÉPARATION':'ÉCHAUFFEMENT';
   setPhase(null);
-  setProgress(0,1);
-  document.getElementById('runMeta').textContent='AVANT SÉANCE';
-  document.getElementById('exLabel').textContent=run.stage==='prep'?'Mise en place':'Échauffement';
+  const firstName=(wod.mode==='vo2'||wod.mode==='mobility')?wod.circuit.stations[0].n:wod.ex[0].n;
+  if(run.stage==='prep'){
+    const t=Math.max(0,run.t),m=String(Math.floor(t/60)).padStart(2,'0'),s=String(t%60).padStart(2,'0');
+    document.getElementById('clock').textContent=m+':'+s;
+    setProgress(0,1);
+    document.getElementById('runMeta').textContent='AVANT SÉANCE';
+    document.getElementById('exLabel').textContent='Mise en place';
+    document.getElementById('setInfo').textContent='';
+    document.getElementById('now').textContent='Installe-toi';
+    document.getElementById('rundose').textContent='Pose le téléphone et prépare ton matériel.';
+    document.getElementById('next').textContent='SUIVANT · Échauffement';
+    return;
+  }
+  // Échauffement : le gros chrono affiche le temps de l'ÉTAPE en cours, pas les
+  // 5 minutes globales — la barre de progression, elle, suit l'échauffement complet.
+  const elapsed=WARMUP_SECONDS-Math.max(0,run.t);
+  const {step,index,left}=warmStepAt(elapsed);
+  const m=String(Math.floor(left/60)).padStart(2,'0'),s=String(left%60).padStart(2,'0');
+  document.getElementById('clock').textContent=m+':'+s;
+  setProgress(WARMUP_SECONDS-Math.max(0,run.t),WARMUP_SECONDS);
+  document.getElementById('runMeta').textContent=`ÉCHAUFFEMENT · ${index+1}/${WARM_STEPS.length}`;
+  document.getElementById('exLabel').textContent='Échauffement';
   document.getElementById('setInfo').textContent='';
-  document.getElementById('now').textContent=run.stage==='prep'?'Installe-toi':WARM.n;
-  document.getElementById('rundose').textContent=run.stage==='prep'
-    ?'Pose le téléphone et prépare ton matériel.':WARM.cue;
-  const firstName=wod.mode==='vo2'?wod.circuit.stations[0].n:wod.ex[0].n;
-  document.getElementById('next').textContent=run.stage==='prep'?'SUIVANT · Échauffement':'SUIVANT · '+firstName;
+  document.getElementById('now').textContent=step.n;
+  document.getElementById('rundose').textContent=step.cue;
+  const next=WARM_STEPS[index+1];
+  document.getElementById('next').textContent=next?'SUIVANT · '+next.n:'SUIVANT · '+firstName;
+}
+// Temps restant recalculé depuis une vraie horodatage plutôt que compté "-1 par
+// tick" : sur iOS, l'écran verrouillé ou l'app en arrière-plan throttle ou gèle
+// setInterval, et un chrono qui ne fait que décompter prend un retard qu'il ne
+// rattrape jamais. En repartant de Date.now() à chaque tick, un retard se
+// rattrape tout seul dès que les tick reprennent (voire au retour au premier plan).
+function remainingFromDeadline(){
+  return Math.max(0,Math.ceil((run.deadline-Date.now())/1000));
 }
 function tick(){
   if(!run||run.paused)return;
-  if(run.stage==='prep'||run.stage==='warmup'){
-    run.t--;
-    beepCountdown(run.t,run.stage==='warmup'?10:5);
+  if(run.stage==='prep'){
+    run.t=remainingFromDeadline();
+    beepCountdown(run.t,5);
     if(run.t<=0){ advanceStage(); return; }
     paintStage();
     return;
   }
+  if(run.stage==='warmup'){
+    const beforeStep=warmStepAt(WARMUP_SECONDS-run.t).index;
+    run.t=remainingFromDeadline();
+    if(run.t<=0){ advanceStage(); return; }
+    const after=warmStepAt(WARMUP_SECONDS-run.t);
+    if(after.index!==beforeStep){ beep('work'); flashClock(); }   // changement d'étape
+    beepCountdown(after.left,3);
+    paintStage();
+    return;
+  }
   if(run.stage==='circuit'){
-    run.t--;
+    run.t=remainingFromDeadline();
     if(run.t<=0){
       const phase=vo2Advance();
       if(phase==='end') return;
@@ -1286,13 +1523,13 @@ function tick(){
     return;
   }
   if(run.rest){
-    run.t--;
+    run.t=remainingFromDeadline();
     // Fin du repos : il faut repeindre tout l'écran (libellé, réglages), pas
     // seulement l'horloge, sinon il reste affiché "prochain exercice".
     if(run.t<=0){ run.rest=false; run.t=0; beep('work'); flashClock(); paintRun(); return; }
     beepCountdown(run.t,5);
   }
-  else run.t++;
+  else run.t++;             // chronomètre de l'effort en cours : compte simplement les secondes écoulées
   paintClock();
 }
 function paintClock(){
@@ -1327,12 +1564,23 @@ function paintRun(){
     : (nx?'SUIVANT · '+wod.ex[nx.i].n:'Dernière série de la séance');
 
   const k=step.i;
-  if(run.w[k]===undefined) run.w[k]=S.weights[e.n]||DEFAULT_WEIGHT;
+  if(run.w[k]===undefined){
+    const base=S.weights[e.n]||DEFAULT_WEIGHT;
+    // Suggestion de charge active : le badge "💪 charge+" constatait sans agir.
+    // Ici, quand le signal est là, le stepper part directement de +2kg — un tap
+    // sur "−" suffit à redescendre si ça ne le sent pas au moment de le faire.
+    const bump=e.eq&&e.eq.includes('kb')&&readyToLoadUp(e.n,repsTarget(e.reps));
+    run.w[k]=bump?base+2:base;
+    run.loadUp=run.loadUp||{}; run.loadUp[k]=bump;
+  }
   if(run.r[k]===undefined) run.r[k]=repsTarget(e.reps);
   run.curWeight=run.w[k]; run.curReps=run.r[k];
   // Les réglages poids/reps servent à valider la série qu'on vient de faire :
   // les afficher pendant le repos laisse croire qu'il y a quelque chose à faire.
-  if(run.rest){ document.getElementById('setlog').classList.add('hide'); }
+  if(run.rest){
+    document.getElementById('setlog').classList.add('hide');
+    document.getElementById('loadHint').classList.add('hide');
+  }
   else paintSetLog(e);
   paintClock();
 }
@@ -1340,8 +1588,12 @@ function paintRun(){
 // utilisable sans rien taper, mais ajustables avant de valider avec SKIP.
 function paintSetLog(e){
   const box=document.getElementById('setlog');
+  const hint=document.getElementById('loadHint');
   const showWeight=e.eq&&e.eq.includes('kb');
   const showReps=run.curReps!==null;
+  const k=curStep().i,bumped=showWeight&&run.loadUp&&run.loadUp[k];
+  hint.textContent=bumped?'💪 +2 kg proposé — tape − sur le poids si tu ne le sens pas':'';
+  hint.classList.toggle('hide',!bumped);
   if(!showWeight&&!showReps){ box.innerHTML=''; box.classList.add('hide'); return; }
   box.classList.remove('hide');
   box.innerHTML=
@@ -1363,20 +1615,20 @@ function nextSet(){
   logSet(e);
   if(e.pat)run.done[e.pat]=1;
   if(run.step>=wod.seq.length-1) return endRun();
-  run.step++; run.rest=true; run.t=step.rest;
+  run.step++; run.rest=true; run.t=step.rest; run.deadline=Date.now()+step.rest*1000;
   beep('rest');flashClock();paintRun();
 }
 
 /* ---------- circuit VO2max ---------- */
 function vo2Advance(){
   const stations=wod.circuit.stations;
-  if(run.phase==='work'){ run.phase='rest'; run.t=wod.circuit.rest; return 'rest'; }
+  if(run.phase==='work'){ run.phase='rest'; run.t=wod.circuit.rest; run.deadline=Date.now()+run.t*1000; return 'rest'; }
   run.station++;
   if(run.station>=stations.length){
     run.station=0; run.round++;
     if(run.round>wod.circuit.rounds){ endRun(); return 'end'; }
   }
-  run.phase='work'; run.t=circuitWorkDur(stations[run.station]);
+  run.phase='work'; run.t=circuitWorkDur(stations[run.station]); run.deadline=Date.now()+run.t*1000;
   return 'work';
 }
 function paintVo2Run(){
@@ -1628,8 +1880,18 @@ document.getElementById('skipEx').onclick=()=>{
   }
   skipExercise();
 };
-document.getElementById('pause').onclick=e=>{run.paused=!run.paused;
-  e.target.textContent=run.paused?'▶ REPRENDRE':'⏸ PAUSE'};
+// Un décompte piloté par échéance (run.deadline) doit être gelé/redémarré
+// explicitement en pause, sinon il continue de courir contre l'horloge réelle
+// pendant que l'affichage, lui, est figé.
+function usesDeadline(){
+  return run.stage==='prep'||run.stage==='warmup'||run.stage==='circuit'||(run.stage==='main'&&run.rest);
+}
+document.getElementById('pause').onclick=e=>{
+  run.paused=!run.paused;
+  if(run.paused){ if(usesDeadline()) run.pauseRemaining=run.deadline-Date.now(); }
+  else if(run.pauseRemaining!=null){ run.deadline=Date.now()+run.pauseRemaining; run.pauseRemaining=null; }
+  e.target.textContent=run.paused?'▶ REPRENDRE':'⏸ PAUSE';
+};
 document.getElementById('abort').onclick=()=>{
   if(!confirm('Arrêter la séance en cours ?'))return;
   clearInterval(run.iv);keepAwake(false);setPhase(null);show('home');paintHome()};
@@ -1645,10 +1907,15 @@ document.getElementById('save').onclick=()=>{
   const pain=[...document.querySelectorAll('#painList .chip[aria-pressed="true"]')]
     .filter(c=>c.dataset.p!=='aucune').map(c=>wod.ex[+c.dataset.p].n);
   S.history.push({d:Date.now(),dur:curDurMin(),mode:wod.mode,kind:wod.kind||null,rpe:selectedRPE,
-    pain,pats:wod.ex.filter(e=>e.pat).map(e=>e.pat),sets:(run&&run.log)||[]});
+    pain,pats:wod.ex.filter(e=>e.pat).map(e=>e.pat),exs:wod.ex.map(e=>e.n),sets:(run&&run.log)||[]});
   pain.forEach(nm=>{const e=wod.ex.find(x=>x.n===nm);
     if(e&&e.pat&&S.levels[e.pat]>0)S.levels[e.pat]--;});
+  if(wod.mode==='force'&&wod.deload) S.lastDeload=Date.now();
   save();show('home');paintHome();
+};
+document.getElementById('deloadBox').onclick=e=>{
+  if(e.target.id==='deloadNow'){ S.forceDeloadNext=true; save(); paintHome(); }
+  else if(e.target.id==='deloadSnooze'){ S.deloadSnoozeUntil=Date.now()+7*24*60*60*1000; save(); paintHome(); }
 };
 document.getElementById('lvlList').onclick=e=>{
   const w=e.target.closest('[data-wlv]');
@@ -1735,6 +2002,9 @@ function normalizeState(){
     S.dur=DURS.reduce((a,b)=>Math.abs(b.v-S.dur)<Math.abs(a.v-S.dur)?b:a).v;
   }
   if(typeof S.mobilDur!=='number'||!MOBIL_DURS.some(d=>d.v===S.mobilDur)) S.mobilDur=12;
+  if(typeof S.lastDeload!=='number') S.lastDeload=0;
+  if(typeof S.forceDeloadNext!=='boolean') S.forceDeloadNext=false;
+  if(typeof S.deloadSnoozeUntil!=='number') S.deloadSnoozeUntil=0;
   S.equip=ALL_EQUIP;
 }
 (()=>{
